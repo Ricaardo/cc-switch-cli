@@ -9,14 +9,15 @@
 
 const ICON_MODE_ENV: &str = "CC_SWITCH_ICONS";
 
-/// User-selectable icon rendering. `Auto` keeps emoji unless the locale is
-/// not UTF-8.
+/// User-selectable icon rendering. ASCII is the default so the layout stays
+/// stable across terminals; emoji remains available through Settings or the
+/// `CC_SWITCH_ICONS=emoji` override.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum IconMode {
     #[default]
-    Auto,
-    Emoji,
     Ascii,
+    Emoji,
+    Auto,
 }
 
 impl IconMode {

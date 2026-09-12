@@ -58,13 +58,13 @@ impl NavItem {
     pub const ALL: [NavItem; 10] = [
         NavItem::Main,
         NavItem::Providers,
-        NavItem::Mcp,
-        NavItem::Skills,
         NavItem::Sessions,
-        NavItem::Prompts,
         NavItem::Usage,
         NavItem::Config,
         NavItem::Settings,
+        NavItem::Mcp,
+        NavItem::Skills,
+        NavItem::Prompts,
         NavItem::Exit,
     ];
 
@@ -72,39 +72,39 @@ impl NavItem {
         NavItem::Main,
         NavItem::Providers,
         NavItem::Sessions,
+        NavItem::Usage,
+        NavItem::Config,
+        NavItem::Settings,
         NavItem::OpenClawWorkspace,
         NavItem::OpenClawEnv,
         NavItem::OpenClawTools,
         NavItem::OpenClawAgents,
-        NavItem::Usage,
-        NavItem::Config,
-        NavItem::Settings,
         NavItem::Exit,
     ];
 
     pub const HERMES_ALL: [NavItem; 10] = [
         NavItem::Main,
         NavItem::Providers,
-        NavItem::Mcp,
-        NavItem::Skills,
         NavItem::Sessions,
-        NavItem::HermesMemory,
         NavItem::Usage,
         NavItem::Config,
         NavItem::Settings,
+        NavItem::Mcp,
+        NavItem::Skills,
+        NavItem::HermesMemory,
         NavItem::Exit,
     ];
 
     pub const PI_ALL: [NavItem; 10] = [
         NavItem::Main,
         NavItem::Providers,
-        NavItem::Skills,
         NavItem::Sessions,
+        NavItem::Usage,
+        NavItem::Settings,
+        NavItem::Skills,
         NavItem::Prompts,
         NavItem::PiSystemPrompts,
         NavItem::PiPromptTemplates,
-        NavItem::Usage,
-        NavItem::Settings,
         NavItem::Exit,
     ];
 
