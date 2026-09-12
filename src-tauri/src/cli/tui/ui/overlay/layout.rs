@@ -106,7 +106,7 @@ pub(crate) fn content_pane_rect(area: Rect, theme: &theme::Theme) -> Rect {
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
+            Constraint::Length(header_height(area)),
             Constraint::Min(0),
             Constraint::Length(1),
         ])

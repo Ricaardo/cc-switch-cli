@@ -3918,7 +3918,13 @@ fn content_text(app: &App, buf: &Buffer) -> String {
 }
 
 fn nav_label_text(item: NavItem) -> String {
-    buffer_cell_text(super::nav_label(item))
+    let label = super::nav_label(item);
+    let (_, text) = super::split_nav_label(label);
+    if super::icons::use_emoji() {
+        buffer_cell_text(label)
+    } else {
+        buffer_cell_text(text)
+    }
 }
 
 fn nav_title_text(item: NavItem) -> &'static str {
@@ -4552,7 +4558,7 @@ fn header_is_wrapped_in_a_rect_block() {
 
     let buf = render(&app, &data);
 
-    // Header is at y=0..=2, and should have an outer border at (0,0).
+    // Header is at y=0..=3, and should have an outer border at (0,0).
     assert_eq!(buf[(0, 0)].symbol(), "┌");
 }
 
@@ -4629,7 +4635,7 @@ fn header_hides_gemini_by_default() {
 
     let app = App::new(Some(AppType::Claude));
     let buf = render(&app, &minimal_data(&app.app_type));
-    let header = line_at(&buf, 1);
+    let header = line_at(&buf, 2);
 
     assert!(header.contains(AppType::Claude.as_str()), "{header}");
     assert!(header.contains(AppType::Codex.as_str()), "{header}");
@@ -4659,7 +4665,7 @@ fn header_only_renders_selected_visible_apps() {
 
     let app = App::new(Some(AppType::OpenClaw));
     let buf = render(&app, &minimal_data(&app.app_type));
-    let header = line_at(&buf, 1);
+    let header = line_at(&buf, 2);
 
     assert!(!header.contains(AppType::Claude.as_str()), "{header}");
     assert!(header.contains(AppType::Codex.as_str()), "{header}");
@@ -4689,14 +4695,15 @@ fn header_keeps_all_app_tabs_visible_with_proxy_chip() {
 
     let app = App::new(Some(AppType::Claude));
     let buf = render(&app, &minimal_data(&app.app_type));
-    let header = line_at(&buf, 1);
+    let title_row = line_at(&buf, 1);
+    let tabs_row = line_at(&buf, 2);
 
-    assert!(header.contains(texts::tui_app_title()), "{header}");
-    assert!(header.contains(AppType::Claude.as_str()), "{header}");
-    assert!(header.contains(AppType::Codex.as_str()), "{header}");
-    assert!(header.contains(AppType::Gemini.as_str()), "{header}");
-    assert!(header.contains(AppType::OpenCode.as_str()), "{header}");
-    assert!(header.contains(AppType::OpenClaw.as_str()), "{header}");
+    assert!(title_row.contains(texts::tui_app_title()), "{title_row}");
+    assert!(tabs_row.contains(AppType::Claude.as_str()), "{tabs_row}");
+    assert!(tabs_row.contains(AppType::Codex.as_str()), "{tabs_row}");
+    assert!(tabs_row.contains(AppType::Gemini.as_str()), "{tabs_row}");
+    assert!(tabs_row.contains(AppType::OpenCode.as_str()), "{tabs_row}");
+    assert!(tabs_row.contains(AppType::OpenClaw.as_str()), "{tabs_row}");
 }
 
 #[test]
@@ -5623,34 +5630,26 @@ fn header_centers_tabs_when_room_allows() {
 
     let app = App::new(Some(AppType::Claude));
     let buf = render_with_size(&app, &minimal_data(&app.app_type), 140, 40);
-    let header = line_at(&buf, 1);
-    let title_idx = header
-        .find(texts::tui_app_title())
-        .expect("title should render");
-    let title_end = title_idx + texts::tui_app_title().len();
-    let proxy_idx = header
-        .find(texts::tui_header_proxy_status(false).as_str())
-        .expect("proxy badge should render");
-    let lane = &header[title_end..proxy_idx];
-    let first_label = lane
+    let tabs = line_at(&buf, 2);
+    let first_label = tabs
         .find(AppType::Claude.as_str())
         .expect("claude tab should render");
-    let last_label_end = lane
+    let last_label_end = tabs
         .rfind(AppType::OpenClaw.as_str())
         .map(|idx| idx + AppType::OpenClaw.as_str().len())
         .expect("openclaw tab should render");
     let left_gap = first_label;
-    let right_gap = lane.len().saturating_sub(last_label_end);
+    let right_gap = tabs.len().saturating_sub(last_label_end);
 
     assert!(
         left_gap.abs_diff(right_gap) <= 2,
-        "expected tabs to stay centered inside the middle lane, got: {header}"
+        "expected tabs to stay centered in their row, got: {tabs}"
     );
 }
 
 #[test]
 #[serial(home_settings)]
-fn header_keeps_title_and_right_badges_visible_without_large_gap_in_chinese() {
+fn header_keeps_title_and_right_badges_visible_in_chinese() {
     let _lock = lock_env();
     let _lang = use_test_language(Language::Chinese);
     let _no_color = EnvGuard::remove("NO_COLOR");
@@ -5684,8 +5683,8 @@ fn header_keeps_title_and_right_badges_visible_without_large_gap_in_chinese() {
     assert!(header.contains(&proxy_label), "{header}");
     assert!(header.contains(&provider_label), "{header}");
     assert!(
-        spaces_before_substring(&header, &proxy_label) <= 7,
-        "expected proxy badge to stay near tabs without a fake blank block: {header}"
+        header.find(&provider_label).unwrap() > header.find(&proxy_label).unwrap(),
+        "expected provider badge to follow proxy badge: {header}"
     );
 }
 
@@ -5709,7 +5708,7 @@ fn header_narrow_width_collapses_center_before_creating_fake_gap() {
 }
 
 #[test]
-fn header_sacrifices_tabs_before_truncating_right_badges() {
+fn header_keeps_tabs_visible_on_a_dedicated_row_when_right_badges_are_wide() {
     let _lock = lock_env();
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -5731,7 +5730,8 @@ fn header_sacrifices_tabs_before_truncating_right_badges() {
     let total_width = (title_width + proxy_badge_width + 1 + provider_badge_width + 2) as u16;
 
     let buf = render_with_size(&app, &data, total_width, 40);
-    let header = line_at(&buf, 1);
+    let title_row = line_at(&buf, 1);
+    let tabs_row = line_at(&buf, 2);
     let proxy_label = texts::tui_header_proxy_status(false);
     let provider_label = format!(
         "{}: {}",
@@ -5739,14 +5739,11 @@ fn header_sacrifices_tabs_before_truncating_right_badges() {
         "Demo Provider"
     );
 
-    assert!(header.contains(texts::tui_app_title()), "{header}");
-    assert!(header.contains(&proxy_label), "{header}");
-    assert!(header.contains(&provider_label), "{header}");
-    assert_eq!(
-        visible_tab_labels(&header),
-        0,
-        "expected tabs to yield before right badges truncate: {header}"
-    );
+    assert!(title_row.contains(texts::tui_app_title()), "{title_row}");
+    assert!(title_row.contains(&proxy_label), "{title_row}");
+    assert!(title_row.contains(&provider_label), "{title_row}");
+    assert!(tabs_row.contains(AppType::Claude.as_str()), "{tabs_row}");
+    assert!(tabs_row.contains(AppType::Codex.as_str()), "{tabs_row}");
 }
 
 #[test]
@@ -6147,7 +6144,7 @@ fn home_replaces_the_logo_hero_with_the_usage_chart() {
     let buf = render(&app, &data);
     let all = all_text(&buf);
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
     assert!(all.contains("Connection Details"));
     assert_eq!(
         line_index(&all, "Connection Details"),
@@ -6383,7 +6380,7 @@ fn home_hides_proxy_dashboard_when_proxy_is_off() {
     let footer = line_at(&buf, buf.area.height - 1);
 
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
     assert!(footer.contains("proxy on"), "{footer}");
     assert!(!all.contains("Proxy Dashboard"), "{all}");
     assert!(!all.contains("127.0.0.1:15721"), "{all}");
@@ -6504,7 +6501,7 @@ fn home_footer_shows_proxy_on_shortcut_when_stopped() {
     assert!(!footer.contains("NAV"), "{footer}");
     assert!(!footer.contains("ACT"), "{footer}");
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
     assert!(!all.contains("Proxy Dashboard"));
 }
 
@@ -6574,7 +6571,7 @@ fn home_proxy_dashboard_keeps_current_app_off_semantics_when_another_app_is_acti
 
     assert!(footer.contains("proxy on"), "{footer}");
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
     assert!(!all.contains("Proxy Dashboard"), "{all}");
     assert!(!all.contains("Shared runtime ready"), "{all}");
     assert!(!all.contains("x1.00"), "{all}");
@@ -6612,7 +6609,7 @@ fn home_proxy_dashboard_stays_off_for_current_worker_without_takeover() {
     assert!(footer.contains("proxy on"), "{footer}");
     assert!(!all.contains("Proxy Dashboard"), "{all}");
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
 }
 
 #[test]
@@ -6637,7 +6634,7 @@ fn home_proxy_dashboard_hides_attach_cta_for_foreground_runtime_owned_elsewhere(
 
     assert!(!footer.contains("proxy on"), "{footer}");
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
     assert!(!all.contains("Proxy Dashboard"), "{all}");
 }
 
@@ -6689,7 +6686,7 @@ fn home_proxy_dashboard_shows_idle_baseline_without_header_copy() {
     let shared_text = all_text(&shared_buf);
     let shared_footer = line_at(&shared_buf, shared_buf.area.height - 1);
     assert!(!shared_text.contains("___  ___"), "{shared_text}");
-    assert!(shared_text.contains("Usage · 30d"), "{shared_text}");
+    assert!(shared_text.contains(&usage_card_title()), "{shared_text}");
     assert!(!shared_text.contains("Proxy Dashboard"), "{shared_text}");
     assert!(!shared_text.contains("x1.25"), "{shared_text}");
     assert!(shared_footer.contains("proxy on"), "{shared_footer}");
@@ -6833,7 +6830,7 @@ fn home_proxy_dashboard_marks_unsupported_apps_without_proxy_cta() {
     assert!(!all.contains("stop proxy"));
     assert!(!footer.contains("proxy on"), "{footer}");
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
     assert!(!all.contains("Proxy Dashboard"), "{all}");
     assert!(!all.contains("Claude Test Provider"), "{all}");
 }
@@ -6886,7 +6883,7 @@ fn home_proxy_dashboard_keeps_current_app_route_separate_from_global_proxy_route
     let footer = line_at(&buf, buf.area.height - 1);
 
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
     assert!(!all.contains("Proxy Dashboard"), "{all}");
     assert!(footer.contains("proxy on"), "{footer}");
     assert!(!all.contains("Latest proxy route"));
@@ -6915,7 +6912,7 @@ fn home_proxy_dashboard_hides_internal_target_identifiers() {
     let all = all_text(&buf);
 
     assert!(!all.contains("___  ___"), "{all}");
-    assert!(all.contains("Usage · 30d"), "{all}");
+    assert!(all.contains(&usage_card_title()), "{all}");
     assert!(!all.contains("Proxy Dashboard"));
     assert!(!all.contains("Claude Test Provider"));
     assert!(!all.contains("Current app route"));
@@ -10734,13 +10731,10 @@ fn workspace_openclaw_nav_uses_app_specific_labels_and_hides_generic_entries() {
         NavItem::Main,
         NavItem::Providers,
         NavItem::Sessions,
-        NavItem::OpenClawWorkspace,
-        NavItem::OpenClawEnv,
-        NavItem::OpenClawTools,
-        NavItem::OpenClawAgents,
         NavItem::Usage,
         NavItem::Config,
         NavItem::Settings,
+        NavItem::More,
         NavItem::Exit,
     ]
     .map(nav_label_text);
@@ -10750,9 +10744,10 @@ fn workspace_openclaw_nav_uses_app_specific_labels_and_hides_generic_entries() {
         .collect::<Vec<_>>();
 
     assert!(positions.windows(2).all(|pair| pair[0] < pair[1]), "{all}");
-    assert!(!all.contains(&nav_label_text(NavItem::Mcp)), "{all}");
-    assert!(!all.contains(&nav_label_text(NavItem::Skills)), "{all}");
-    assert!(!all.contains(&nav_label_text(NavItem::Prompts)), "{all}");
+    assert!(!all.contains(&nav_label_text(NavItem::OpenClawWorkspace)), "{all}");
+    assert!(!all.contains(&nav_label_text(NavItem::OpenClawEnv)), "{all}");
+    assert!(!all.contains(&nav_label_text(NavItem::OpenClawTools)), "{all}");
+    assert!(!all.contains(&nav_label_text(NavItem::OpenClawAgents)), "{all}");
     assert!(
         !all.contains(&buffer_cell_text(texts::menu_pricing())),
         "{all}"
@@ -10772,12 +10767,12 @@ fn workspace_non_openclaw_nav_keeps_generic_labels() {
     let expected = [
         NavItem::Main,
         NavItem::Providers,
-        NavItem::Mcp,
-        NavItem::Skills,
         NavItem::Sessions,
-        NavItem::Prompts,
         NavItem::Usage,
         NavItem::Config,
+        NavItem::Settings,
+        NavItem::More,
+        NavItem::Exit,
     ]
     .map(nav_label_text);
     let positions = expected
@@ -10798,6 +10793,27 @@ fn workspace_non_openclaw_nav_keeps_generic_labels() {
     ] {
         assert!(!all.contains(&nav_label_text(item)), "{all}");
     }
+}
+
+#[test]
+fn more_menu_holds_advanced_entries_out_of_the_primary_nav() {
+    let _lock = lock_env();
+    let _lang = use_test_language(Language::English);
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Claude));
+    app.overlay = Overlay::MoreMenu { selected: 0 };
+    let buf = render(&app, &minimal_data(&app.app_type));
+    let primary_nav = nav_text(&app, &buf);
+    let all = all_text(&buf);
+
+    assert!(primary_nav.contains(&nav_label_text(NavItem::More)), "{primary_nav}");
+    assert!(!primary_nav.contains(&nav_label_text(NavItem::Mcp)), "{primary_nav}");
+    assert!(!primary_nav.contains(&nav_label_text(NavItem::Skills)), "{primary_nav}");
+    assert!(!primary_nav.contains(&nav_label_text(NavItem::Prompts)), "{primary_nav}");
+    assert!(all.contains(nav_title_text(NavItem::Mcp)), "{all}");
+    assert!(all.contains(nav_title_text(NavItem::Skills)), "{all}");
+    assert!(all.contains(nav_title_text(NavItem::Prompts)), "{all}");
 }
 
 #[test]
@@ -13872,7 +13888,7 @@ fn home_usage_chart_degrades_on_small_terminals_without_panicking() {
     // The list header survives; the graph disappears first.
     let small_buf = render_with_size(&app, &data, 80, 23);
     let small = all_text(&small_buf);
-    assert!(small.contains("Usage · 30d"), "{small}");
+    assert!(small.contains(&usage_card_title()), "{small}");
     assert!(small.contains("Models by Cost"), "{small}");
     let small_card = usage_card_inner_text(&small_buf);
     assert_eq!(small_card.lines().count(), 2, "{small_card}");

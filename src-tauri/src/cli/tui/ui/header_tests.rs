@@ -188,7 +188,7 @@ fn header_openclaw_localizes_config_error_in_chinese() {
 }
 
 #[test]
-fn header_openclaw_sacrifices_tabs_before_losing_the_only_status_badge() {
+fn header_openclaw_keeps_tabs_on_a_dedicated_row_when_status_badge_is_wide() {
     let _ctx = TestContext::new().with_visible_apps(crate::settings::VisibleApps {
         claude: true,
         codex: true,
@@ -217,15 +217,15 @@ fn header_openclaw_sacrifices_tabs_before_losing_the_only_status_badge() {
     let status_badge_width = UnicodeWidthStr::width("  Default Model: gpt-4.1  ");
     let total_width = (title_width + status_badge_width + 2) as u16;
 
-    let header = super::tests::line_at(
-        &super::tests::render_with_size(&app, &data, total_width, 20),
-        1,
-    );
+    let rendered = super::tests::render_with_size(&app, &data, total_width, 20);
+    let header = super::tests::line_at(&rendered, 1);
+    let tabs = super::tests::line_at(&rendered, 2);
 
     assert!(header.contains("Default Model: gpt-4.1"), "{header}");
     assert_openclaw_provider_hidden_en(&header);
     assert_proxy_hidden_en(&header);
-    assert_eq!(super::tests::visible_tab_labels(&header), 0, "{header}");
+    assert!(tabs.contains(AppType::Claude.as_str()), "{tabs}");
+    assert!(tabs.contains(AppType::Codex.as_str()), "{tabs}");
 }
 
 #[test]

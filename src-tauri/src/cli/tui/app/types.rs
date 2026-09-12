@@ -4672,6 +4672,9 @@ pub enum Overlay {
     CommonSnippetPicker {
         selected: usize,
     },
+    MoreMenu {
+        selected: usize,
+    },
     ProviderTestMenu {
         provider_id: String,
         selected: usize,
@@ -4939,6 +4942,7 @@ impl Overlay {
             Overlay::BackupPicker { .. }
                 | Overlay::TextView(_)
                 | Overlay::CommonSnippetPicker { .. }
+                | Overlay::MoreMenu { .. }
                 | Overlay::ProviderTestMenu { .. }
                 | Overlay::FailoverQueueManager { .. }
                 | Overlay::ClaudeApiFormatPicker { .. }
@@ -4988,6 +4992,7 @@ impl Overlay {
             | Overlay::BackupPicker { .. }
             | Overlay::TextView(_)
             | Overlay::CommonSnippetPicker { .. }
+            | Overlay::MoreMenu { .. }
             | Overlay::ProviderTestMenu { .. }
             | Overlay::FailoverQueueManager { .. }
             | Overlay::ClaudeApiFormatPicker { .. }

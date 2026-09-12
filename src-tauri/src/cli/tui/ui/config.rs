@@ -2811,6 +2811,31 @@ fn openclaw_workspace_meta_row(
     }
 }
 
+fn truncate_path_tail_to_display_width(value: &str, width: u16) -> String {
+    let width = width as usize;
+    if width == 0 {
+        return String::new();
+    }
+    if UnicodeWidthStr::width(value) <= width {
+        return value.to_string();
+    }
+
+    let marker = truncation_marker();
+    let marker_width = UnicodeWidthStr::width(marker);
+    let suffix_width = width.saturating_sub(marker_width);
+    let mut suffix = String::new();
+    let mut used = 0usize;
+    for ch in value.chars().rev() {
+        let ch_width = UnicodeWidthChar::width(ch).unwrap_or(0);
+        if used.saturating_add(ch_width) > suffix_width {
+            break;
+        }
+        suffix.insert(0, ch);
+        used = used.saturating_add(ch_width);
+    }
+    format!("{marker}{suffix}")
+}
+
 fn openclaw_workspace_file_row(
     theme: &super::theme::Theme,
     filename_width: usize,
@@ -3082,6 +3107,10 @@ fn render_openclaw_workspace(
         app.focus == Focus::Content,
     );
 
+    let body_area = inset_left(chunks[1], CONTENT_INSET_LEFT);
+    let summary_text_width = body_area.width;
+    let section_text_width = body_area.width.saturating_sub(3);
+
     let max_filename_len = crate::commands::workspace::ALLOWED_FILES
         .iter()
         .map(|f| f.len())
@@ -3090,11 +3119,10 @@ fn render_openclaw_workspace(
     let workspace_summary_rows = vec![openclaw_workspace_meta_row(
         theme,
         texts::tui_openclaw_workspace_directory_label(),
-        data.config
-            .openclaw_workspace
-            .directory_path
-            .display()
-            .to_string(),
+        truncate_path_tail_to_display_width(
+            &data.config.openclaw_workspace.directory_path.display().to_string(),
+            summary_text_width.saturating_sub(2),
+        ),
         false,
         false,
     )];
@@ -3131,12 +3159,16 @@ fn render_openclaw_workspace(
     daily_memory_rows.push(openclaw_workspace_meta_row(
         theme,
         texts::tui_openclaw_daily_memory_directory_label(),
-        data.config
-            .openclaw_workspace
-            .directory_path
-            .join("memory")
-            .display()
-            .to_string(),
+        truncate_path_tail_to_display_width(
+            &data
+                .config
+                .openclaw_workspace
+                .directory_path
+                .join("memory")
+                .display()
+                .to_string(),
+            section_text_width.saturating_sub(2),
+        ),
         false,
         true,
     ));
@@ -3147,9 +3179,6 @@ fn render_openclaw_workspace(
         ));
     }
 
-    let body_area = inset_left(chunks[1], CONTENT_INSET_LEFT);
-    let summary_text_width = body_area.width;
-    let section_text_width = body_area.width.saturating_sub(3);
     let summary_full_height =
         openclaw_workspace_summary_height(&workspace_summary_rows, summary_text_width);
     let files_full_height =

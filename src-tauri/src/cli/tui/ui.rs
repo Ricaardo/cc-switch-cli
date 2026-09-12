@@ -80,7 +80,7 @@ pub fn render(frame: &mut Frame<'_>, app: &App, data: &UiData) {
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
+            Constraint::Length(header_height(frame.area())),
             Constraint::Min(0),
             Constraint::Length(1),
         ])

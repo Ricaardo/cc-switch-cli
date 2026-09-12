@@ -186,36 +186,36 @@ impl App {
                 NavItem::Usage
             }
             Route::Sessions => NavItem::Sessions,
-            Route::Mcp => NavItem::Mcp,
-            Route::Prompts => NavItem::Prompts,
-            Route::PiSystemPrompts => NavItem::PiSystemPrompts,
-            Route::PiPromptTemplates => NavItem::PiPromptTemplates,
-            Route::HermesMemory => NavItem::HermesMemory,
+            Route::Mcp
+            | Route::Prompts
+            | Route::PiSystemPrompts
+            | Route::PiPromptTemplates
+            | Route::HermesMemory => NavItem::More,
             Route::Config => NavItem::Config,
             Route::ConfigOpenClawWorkspace | Route::ConfigOpenClawDailyMemory => {
                 if matches!(app_type, AppType::OpenClaw) {
-                    NavItem::OpenClawWorkspace
+                    NavItem::More
                 } else {
                     NavItem::Config
                 }
             }
             Route::ConfigOpenClawEnv => {
                 if matches!(app_type, AppType::OpenClaw) {
-                    NavItem::OpenClawEnv
+                    NavItem::More
                 } else {
                     NavItem::Config
                 }
             }
             Route::ConfigOpenClawTools => {
                 if matches!(app_type, AppType::OpenClaw) {
-                    NavItem::OpenClawTools
+                    NavItem::More
                 } else {
                     NavItem::Config
                 }
             }
             Route::ConfigOpenClawAgents => {
                 if matches!(app_type, AppType::OpenClaw) {
-                    NavItem::OpenClawAgents
+                    NavItem::More
                 } else {
                     NavItem::Config
                 }
@@ -224,7 +224,7 @@ impl App {
             Route::Skills
             | Route::SkillsDiscover
             | Route::SkillsRepos
-            | Route::SkillDetail { .. } => NavItem::Skills,
+            | Route::SkillDetail { .. } => NavItem::More,
             Route::Settings
             | Route::SettingsProxy
             | Route::SettingsOutboundProxy
@@ -1087,15 +1087,23 @@ impl App {
                 Action::None
             }
             KeyCode::Enter => {
-                if let Some(route) = self.nav_item().to_route() {
-                    self.push_route_and_switch(route)
-                } else {
-                    self.overlay = Overlay::Confirm(ConfirmOverlay {
-                        title: crate::cli::i18n::texts::tui_confirm_exit_title().to_string(),
-                        message: crate::cli::i18n::texts::tui_confirm_exit_message().to_string(),
-                        action: ConfirmAction::Quit,
-                    });
-                    Action::None
+                match self.nav_item() {
+                    NavItem::More => {
+                        self.overlay = Overlay::MoreMenu { selected: 0 };
+                        Action::None
+                    }
+                    NavItem::Exit => {
+                        self.overlay = Overlay::Confirm(ConfirmOverlay {
+                            title: crate::cli::i18n::texts::tui_confirm_exit_title().to_string(),
+                            message: crate::cli::i18n::texts::tui_confirm_exit_message().to_string(),
+                            action: ConfirmAction::Quit,
+                        });
+                        Action::None
+                    }
+                    nav_item => nav_item
+                        .to_route()
+                        .map(|route| self.push_route_and_switch(route))
+                        .unwrap_or(Action::None),
                 }
             }
             _ => Action::None,

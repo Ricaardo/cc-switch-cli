@@ -496,6 +496,18 @@ mod tests {
             .expect("nav item should be visible for app")
     }
 
+    fn enter_more_item(app: &mut App, item: NavItem) -> Action {
+        app.nav_idx = nav_index(app, NavItem::More);
+        let data = UiData::default();
+        assert!(matches!(app.on_key(key(KeyCode::Enter), &data), Action::None));
+        let selected = NavItem::more_for_app(&app.app_type)
+            .iter()
+            .position(|candidate| *candidate == item)
+            .expect("more item should be available for app");
+        app.overlay = Overlay::MoreMenu { selected };
+        app.on_key(key(KeyCode::Enter), &data)
+    }
+
     fn workspace_row_index(row: OpenClawWorkspaceRow) -> usize {
         openclaw_workspace_rows()
             .iter()
@@ -600,10 +612,10 @@ mod tests {
     #[test]
     fn nav_menu_includes_skills_entry() {
         assert!(
-            NavItem::ALL
+            NavItem::MORE_ALL
                 .iter()
                 .any(|item| matches!(item, NavItem::Skills)),
-            "Ratatui TUI nav should include a Skills entry"
+            "Ratatui TUI More menu should include a Skills entry"
         );
         assert!(matches!(
             NavItem::ALL[NavItem::ALL.len() - 1],
@@ -5692,9 +5704,7 @@ mod tests {
     fn openclaw_nav_env_enter_opens_dedicated_subroute() {
         let mut app = App::new(Some(AppType::OpenClaw));
         app.focus = Focus::Nav;
-        app.nav_idx = nav_index(&app, NavItem::OpenClawEnv);
-
-        let action = app.on_key(key(KeyCode::Enter), &UiData::default());
+        let action = enter_more_item(&mut app, NavItem::OpenClawEnv);
 
         assert!(matches!(
             action,
@@ -5708,9 +5718,7 @@ mod tests {
     fn openclaw_nav_workspace_enter_opens_dedicated_subroute() {
         let mut app = App::new(Some(AppType::OpenClaw));
         app.focus = Focus::Nav;
-        app.nav_idx = nav_index(&app, NavItem::OpenClawWorkspace);
-
-        let action = app.on_key(key(KeyCode::Enter), &UiData::default());
+        let action = enter_more_item(&mut app, NavItem::OpenClawWorkspace);
 
         assert!(matches!(
             action,
@@ -5732,9 +5740,12 @@ mod tests {
         for (nav_item, expected_route) in cases {
             let mut app = App::new(Some(AppType::Claude));
             app.focus = Focus::Nav;
-            app.nav_idx = nav_index(&app, nav_item);
-
-            let action = app.on_key(key(KeyCode::Enter), &UiData::default());
+            let action = if matches!(nav_item, NavItem::Config) {
+                app.nav_idx = nav_index(&app, nav_item);
+                app.on_key(key(KeyCode::Enter), &UiData::default())
+            } else {
+                enter_more_item(&mut app, nav_item)
+            };
 
             assert!(matches!(
                 action,
@@ -6464,9 +6475,7 @@ mod tests {
     fn openclaw_nav_tools_enter_opens_dedicated_subroute() {
         let mut app = App::new(Some(AppType::OpenClaw));
         app.focus = Focus::Nav;
-        app.nav_idx = nav_index(&app, NavItem::OpenClawTools);
-
-        let action = app.on_key(key(KeyCode::Enter), &UiData::default());
+        let action = enter_more_item(&mut app, NavItem::OpenClawTools);
 
         assert!(matches!(
             action,
@@ -6480,9 +6489,7 @@ mod tests {
     fn openclaw_nav_agents_enter_opens_dedicated_subroute() {
         let mut app = App::new(Some(AppType::OpenClaw));
         app.focus = Focus::Nav;
-        app.nav_idx = nav_index(&app, NavItem::OpenClawAgents);
-
-        let action = app.on_key(key(KeyCode::Enter), &UiData::default());
+        let action = enter_more_item(&mut app, NavItem::OpenClawAgents);
 
         assert!(matches!(
             action,

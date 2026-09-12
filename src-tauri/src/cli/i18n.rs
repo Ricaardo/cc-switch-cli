@@ -9701,6 +9701,19 @@ pub mod texts {
         ("🔧 Settings", "🔧 设置")
     }
 
+    pub fn menu_more() -> &'static str {
+        let (en, zh) = menu_more_variants();
+        if is_chinese() {
+            zh
+        } else {
+            en
+        }
+    }
+
+    pub fn menu_more_variants() -> (&'static str, &'static str) {
+        ("⋯ More", "⋯ 更多")
+    }
+
     pub fn menu_exit() -> &'static str {
         let (en, zh) = menu_exit_variants();
         if is_chinese() {

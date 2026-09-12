@@ -1,6 +1,7 @@
 use super::*;
 
 pub(super) const HEADER_STATUS_VALUE_MAX_WIDTH: u16 = 512;
+const HEADER_MIN_HEIGHT_FOR_TABS: u16 = 18;
 const HEADER_BLANK_CHECK_MAX_BYTES: usize = 4 * 1024;
 const HEADER_BLANK_CHECK_MAX_CHARS: usize = 2 * 1024;
 
@@ -117,6 +118,14 @@ fn fit_header_status_badge(
     Some(format!("  {truncated}  "))
 }
 
+pub(super) fn header_height(area: Rect) -> u16 {
+    if area.height < HEADER_MIN_HEIGHT_FOR_TABS {
+        3
+    } else {
+        4
+    }
+}
+
 pub(super) fn render_header(
     frame: &mut Frame<'_>,
     app: &App,
@@ -124,6 +133,8 @@ pub(super) fn render_header(
     area: Rect,
     theme: &super::theme::Theme,
 ) {
+    let title_row = Rect::new(area.x, area.y, area.width, 1);
+    let tabs_row = Rect::new(area.x, area.y.saturating_add(1), area.width, 1);
     let title_text = format!("  {}", texts::tui_app_title());
     let title_width = UnicodeWidthStr::width(title_text.as_str()) as u16;
 
@@ -178,7 +189,7 @@ pub(super) fn render_header(
             (format!("  {text}  "), style)
         });
 
-    let available_after_title = area.width.saturating_sub(title_width);
+    let available_after_title = title_row.width.saturating_sub(title_width);
     let status_text_full = format!(
         "{}: {}",
         header_status_label(&app.app_type),
@@ -199,30 +210,29 @@ pub(super) fn render_header(
         (None, None) => 0,
     };
 
-    let title_area = Rect::new(area.x, area.y, title_width.min(area.width), area.height);
-    let right_x = area
+    let title_area = Rect::new(
+        title_row.x,
+        title_row.y,
+        title_width.min(title_row.width),
+        title_row.height,
+    );
+    let right_x = title_row
         .right()
         .saturating_sub(right_width)
         .max(title_area.right());
     let right_area = Rect::new(
         right_x,
-        area.y,
-        area.right().saturating_sub(right_x),
-        area.height,
-    );
-    let tabs_x = title_area.right();
-    let tabs_right = right_area.x;
-    let tabs_area = Rect::new(
-        tabs_x,
-        area.y,
-        tabs_right.saturating_sub(tabs_x),
-        area.height,
+        title_row.y,
+        title_row.right().saturating_sub(right_x),
+        title_row.height,
     );
 
-    frame.render_widget(
-        Paragraph::new(tabs_line).alignment(Alignment::Center),
-        tabs_area,
-    );
+    if area.height > 1 {
+        frame.render_widget(
+            Paragraph::new(tabs_line).alignment(Alignment::Center),
+            tabs_row,
+        );
+    }
     frame.render_widget(title, title_area);
 
     let right_spans = match (proxy_badge, status_badge) {
@@ -268,6 +278,7 @@ pub(super) fn nav_label(item: NavItem) -> &'static str {
         NavItem::OpenClawTools => texts::menu_openclaw_tools(),
         NavItem::OpenClawAgents => texts::menu_openclaw_agents(),
         NavItem::Settings => texts::menu_settings(),
+        NavItem::More => texts::menu_more(),
         NavItem::Exit => texts::menu_exit(),
     }
 }
@@ -290,6 +301,7 @@ pub(super) fn nav_label_variants(item: NavItem) -> (&'static str, &'static str) 
         NavItem::OpenClawTools => texts::menu_openclaw_tools_variants(),
         NavItem::OpenClawAgents => texts::menu_openclaw_agents_variants(),
         NavItem::Settings => texts::menu_settings_variants(),
+        NavItem::More => texts::menu_more_variants(),
         NavItem::Exit => texts::menu_exit_variants(),
     }
 }
