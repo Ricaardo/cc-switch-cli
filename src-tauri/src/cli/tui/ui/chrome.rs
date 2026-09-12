@@ -314,10 +314,13 @@ pub(super) fn nav_pane_width(theme: &super::theme::Theme) -> u16 {
     const NAV_TEXT_EXTRA_WIDTH: u16 = 2;
     let highlight_width = UnicodeWidthStr::width(highlight_symbol(theme)) as u16;
 
+    // The advanced pages live inside the More overlay and do not need to
+    // reserve width in the persistent navigation pane. Keeping their long
+    // labels here made the everyday Claude/Codex content area unnecessarily
+    // narrow.
     let max_text_width = NavItem::ALL
         .iter()
-        .chain(NavItem::OPENCLAW_ALL.iter())
-        .chain(NavItem::HERMES_ALL.iter())
+        .chain(NavItem::PI_ALL.iter())
         .flat_map(|item| {
             let (en, zh) = nav_label_variants(*item);
             [en, zh]
