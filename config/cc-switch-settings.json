@@ -1,0 +1,33 @@
+{
+  "showInTray": true,
+  "minimizeToTrayOnClose": true,
+  "enableClaudePluginIntegration": false,
+  "skipClaudeOnboarding": false,
+  "commonConfigConfirmed": true,
+  "usageConfirmed": true,
+  "currentProviderClaude": "claude-official",
+  "currentProviderCodex": "codex-official",
+  "visibleApps": {
+    "claude": true,
+    "codex": true,
+    "gemini": false,
+    "opencode": false,
+    "hermes": false,
+    "openclaw": false,
+    "pi": false
+  },
+  "visibleAppsSettings": {
+    "mode": "manual",
+    "autoPromptDecided": true,
+    "manualHiddenInstalledNotices": {},
+    "lastDetectedInstalled": {}
+  },
+  "language": "zh",
+  "launchOnStartup": false,
+  "preserveCodexOfficialAuthOnSwitch": true,
+  "unifyCodexSessionHistory": true,
+  "unifyCodexMigrateExisting": false,
+  "usageAutoSync": true,
+  "skillSyncMethod": "auto",
+  "skillStorageLocation": "cc_switch"
+}
