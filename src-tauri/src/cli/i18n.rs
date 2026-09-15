@@ -4558,6 +4558,14 @@ pub mod texts {
         }
     }
 
+    pub fn tui_key_back() -> &'static str {
+        if is_chinese() {
+            "返回"
+        } else {
+            "back"
+        }
+    }
+
     pub fn tui_key_scroll() -> &'static str {
         if is_chinese() {
             "滚动"

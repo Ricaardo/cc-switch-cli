@@ -3120,7 +3120,12 @@ fn render_openclaw_workspace(
         theme,
         texts::tui_openclaw_workspace_directory_label(),
         truncate_path_tail_to_display_width(
-            &data.config.openclaw_workspace.directory_path.display().to_string(),
+            &data
+                .config
+                .openclaw_workspace
+                .directory_path
+                .display()
+                .to_string(),
             summary_text_width.saturating_sub(2),
         ),
         false,

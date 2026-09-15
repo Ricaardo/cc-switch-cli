@@ -687,6 +687,7 @@ pub(crate) fn route_has_content_list(route: &Route) -> bool {
         route,
         Route::Providers
             | Route::Usage
+            | Route::More
             | Route::UsageLogs
             | Route::UsageLogDetail { .. }
             | Route::Pricing

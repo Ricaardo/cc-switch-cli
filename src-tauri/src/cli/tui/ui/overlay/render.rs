@@ -41,9 +41,6 @@ pub(crate) fn render_overlay(
                 *selected,
             )
         }
-        Overlay::MoreMenu { selected } => {
-            super::basic::render_more_menu_overlay(frame, app, content_area, theme, *selected)
-        }
         Overlay::ProviderTestMenu {
             provider_id,
             selected,

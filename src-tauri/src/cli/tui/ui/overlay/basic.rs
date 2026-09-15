@@ -329,42 +329,6 @@ pub(super) fn render_common_snippet_picker_overlay(
     frame.render_stateful_widget(list, body, &mut state);
 }
 
-pub(super) fn render_more_menu_overlay(
-    frame: &mut Frame<'_>,
-    app: &App,
-    content_area: Rect,
-    theme: &theme::Theme,
-    selected: usize,
-) {
-    let items = NavItem::more_for_app(&app.app_type);
-    let body = overlay_frame(
-        frame,
-        content_area,
-        theme,
-        texts::menu_more(),
-        &[
-            ("↑↓", texts::tui_key_select()),
-            ("Enter", texts::tui_key_open()),
-            ("Esc", texts::tui_key_close()),
-        ],
-        OverlaySize::FitRows {
-            width: 56,
-            body_rows: items.len() as u16,
-        },
-        overlay_border_style(theme, false),
-    );
-
-    let list = List::new(items.iter().map(|item| {
-        ListItem::new(Line::from(Span::raw(icons::strip_icon(nav_label(*item)).to_string())))
-    }))
-    .highlight_style(selection_style(theme))
-    .highlight_symbol(highlight_symbol(theme));
-
-    let mut state = ListState::default();
-    state.select(Some(selected.min(items.len().saturating_sub(1))));
-    frame.render_stateful_widget(list, body, &mut state);
-}
-
 fn render_scrolling_lines(frame: &mut Frame<'_>, area: Rect, lines: &[String], scroll: usize) {
     let height = area.height as usize;
     let start = scroll.min(lines.len());

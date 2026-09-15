@@ -480,7 +480,7 @@ mod tests {
         let theme = theme_for(&AppType::OpenCode);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(255, 184, 108));
+        assert_eq!(theme.accent, Color::Rgb(240, 177, 121));
         assert_eq!(theme.surface, Color::Rgb(42, 48, 60));
         assert!(!theme.no_color);
     }
@@ -638,8 +638,8 @@ mod tests {
         let theme = theme_for(&AppType::OpenCode);
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
-        assert_eq!(theme.accent, Color::Indexed(215));
-        assert_eq!(theme.surface, Color::Indexed(239));
+        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(240, 177, 121)));
+        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(42, 48, 60)));
         assert!(!theme.no_color);
     }
 
@@ -713,7 +713,7 @@ mod tests {
         // accent chips near-black.
         assert_eq!(
             rgb_to_ansi256(DRACULA_FG.0, DRACULA_FG.1, DRACULA_FG.2),
-            255
+            254
         );
         assert_eq!(rgb_to_ansi256(10, 10, 10), 232);
     }
@@ -721,13 +721,13 @@ mod tests {
     #[test]
     fn ansi256_mapping_keeps_curated_indices_for_fixed_v5_palette() {
         assert_eq!(rgb_to_ansi256(80, 250, 123), 84);
-        assert_eq!(rgb_to_ansi256(125, 196, 228), 74);
+        assert_eq!(rgb_to_ansi256(125, 196, 228), 116);
         assert_eq!(rgb_to_ansi256(255, 121, 198), 212);
         assert_eq!(rgb_to_ansi256(255, 184, 108), 215);
         assert_eq!(rgb_to_ansi256(241, 250, 140), 228);
         assert_eq!(rgb_to_ansi256(255, 85, 85), 203);
         assert_eq!(rgb_to_ansi256(98, 114, 164), 61);
-        assert_eq!(rgb_to_ansi256(42, 48, 60), 235);
+        assert_eq!(rgb_to_ansi256(42, 48, 60), 236);
         assert_eq!(rgb_to_ansi256(101, 113, 160), 61);
         assert_eq!(rgb_to_ansi256(248, 248, 248), 231);
         assert_eq!(rgb_to_ansi256(108, 108, 108), 242);

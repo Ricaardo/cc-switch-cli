@@ -97,6 +97,7 @@ impl App {
             usage: UsageState::default(),
             pricing: PricingState::default(),
             sessions: SessionsState::default(),
+            more_idx: 0,
             provider_idx: 0,
             mcp_idx: 0,
             prompt_idx: 0,
@@ -178,57 +179,37 @@ impl App {
         NavItem::all_for_app(&self.app_type)
     }
 
-    pub(crate) fn nav_item_for_route(app_type: &AppType, route: &Route) -> NavItem {
+    pub(crate) fn nav_item_for_route(_app_type: &AppType, route: &Route) -> NavItem {
         match route {
             Route::Main => NavItem::Main,
             Route::Providers => NavItem::Providers,
             Route::Usage | Route::UsageLogs | Route::UsageLogDetail { .. } | Route::Pricing => {
                 NavItem::Usage
             }
-            Route::Sessions => NavItem::Sessions,
-            Route::Mcp
+            Route::More
+            | Route::Sessions
+            | Route::Mcp
             | Route::Prompts
             | Route::PiSystemPrompts
             | Route::PiPromptTemplates
-            | Route::HermesMemory => NavItem::More,
-            Route::Config => NavItem::Config,
-            Route::ConfigOpenClawWorkspace | Route::ConfigOpenClawDailyMemory => {
-                if matches!(app_type, AppType::OpenClaw) {
-                    NavItem::More
-                } else {
-                    NavItem::Config
-                }
-            }
-            Route::ConfigOpenClawEnv => {
-                if matches!(app_type, AppType::OpenClaw) {
-                    NavItem::More
-                } else {
-                    NavItem::Config
-                }
-            }
-            Route::ConfigOpenClawTools => {
-                if matches!(app_type, AppType::OpenClaw) {
-                    NavItem::More
-                } else {
-                    NavItem::Config
-                }
-            }
-            Route::ConfigOpenClawAgents => {
-                if matches!(app_type, AppType::OpenClaw) {
-                    NavItem::More
-                } else {
-                    NavItem::Config
-                }
-            }
-            Route::ConfigCloudSync | Route::ConfigWebDav | Route::ConfigS3 => NavItem::Config,
-            Route::Skills
+            | Route::HermesMemory
+            | Route::Config
+            | Route::ConfigOpenClawWorkspace
+            | Route::ConfigOpenClawDailyMemory
+            | Route::ConfigOpenClawEnv
+            | Route::ConfigOpenClawTools
+            | Route::ConfigOpenClawAgents
+            | Route::ConfigCloudSync
+            | Route::ConfigWebDav
+            | Route::ConfigS3
+            | Route::Skills
             | Route::SkillsDiscover
             | Route::SkillsRepos
-            | Route::SkillDetail { .. } => NavItem::More,
-            Route::Settings
+            | Route::SkillDetail { .. }
+            | Route::Settings
             | Route::SettingsProxy
             | Route::SettingsOutboundProxy
-            | Route::SettingsManagedAccounts => NavItem::Settings,
+            | Route::SettingsManagedAccounts => NavItem::More,
         }
     }
 
@@ -1086,26 +1067,40 @@ impl App {
                 self.nav_idx = (self.nav_idx + 1).min(self.nav_items().len() - 1);
                 Action::None
             }
-            KeyCode::Enter => {
-                match self.nav_item() {
-                    NavItem::More => {
-                        self.overlay = Overlay::MoreMenu { selected: 0 };
-                        Action::None
-                    }
-                    NavItem::Exit => {
-                        self.overlay = Overlay::Confirm(ConfirmOverlay {
-                            title: crate::cli::i18n::texts::tui_confirm_exit_title().to_string(),
-                            message: crate::cli::i18n::texts::tui_confirm_exit_message().to_string(),
-                            action: ConfirmAction::Quit,
-                        });
-                        Action::None
-                    }
-                    nav_item => nav_item
-                        .to_route()
-                        .map(|route| self.push_route_and_switch(route))
-                        .unwrap_or(Action::None),
+            KeyCode::Enter => match self.nav_item() {
+                NavItem::Exit => {
+                    self.overlay = Overlay::Confirm(ConfirmOverlay {
+                        title: crate::cli::i18n::texts::tui_confirm_exit_title().to_string(),
+                        message: crate::cli::i18n::texts::tui_confirm_exit_message().to_string(),
+                        action: ConfirmAction::Quit,
+                    });
+                    Action::None
                 }
+                nav_item => nav_item
+                    .to_route()
+                    .map(|route| self.push_route_and_switch(route))
+                    .unwrap_or(Action::None),
+            },
+            _ => Action::None,
+        }
+    }
+
+    pub(crate) fn on_more_key(&mut self, key: KeyEvent) -> Action {
+        let items = NavItem::more_for_app(&self.app_type);
+        match key.code {
+            KeyCode::Up => {
+                self.more_idx = self.more_idx.saturating_sub(1);
+                Action::None
             }
+            KeyCode::Down => {
+                self.more_idx = (self.more_idx + 1).min(items.len().saturating_sub(1));
+                Action::None
+            }
+            KeyCode::Enter => items
+                .get(self.more_idx)
+                .and_then(|item| item.to_route())
+                .map(|route| self.push_route_and_switch(route))
+                .unwrap_or(Action::None),
             _ => Action::None,
         }
     }
@@ -1114,6 +1109,7 @@ impl App {
         match self.route.clone() {
             Route::Providers => self.on_providers_key(key, data),
             Route::Usage => self.on_usage_key(key, data),
+            Route::More => self.on_more_key(key),
             Route::UsageLogs => self.on_usage_logs_key(key, data),
             Route::UsageLogDetail { rowid } => self.on_usage_log_detail_key(key, rowid),
             Route::Pricing => self.on_pricing_key(key, data),
@@ -1180,6 +1176,9 @@ impl App {
     }
 
     pub(crate) fn clamp_selections(&mut self, data: &UiData) {
+        let more_len = NavItem::more_for_app(&self.app_type).len();
+        self.more_idx = self.more_idx.min(more_len.saturating_sub(1));
+
         let providers_len = visible_providers(&self.app_type, &self.filter, data).len();
         if providers_len == 0 {
             self.provider_idx = 0;

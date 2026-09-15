@@ -767,6 +767,7 @@ pub struct App {
     pub usage: UsageState,
     pub pricing: PricingState,
     pub sessions: SessionsState,
+    pub more_idx: usize,
     pub provider_idx: usize,
     pub mcp_idx: usize,
     pub prompt_idx: usize,

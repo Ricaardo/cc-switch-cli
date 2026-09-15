@@ -41,6 +41,7 @@ mod forms;
 mod home_chart;
 mod main_page;
 mod mcp;
+mod more;
 mod overlay;
 mod pricing;
 mod prompts;
@@ -64,6 +65,7 @@ use forms::*;
 use home_chart::*;
 use main_page::*;
 use mcp::*;
+use more::*;
 use overlay::*;
 use pricing::*;
 use prompts::*;
@@ -161,6 +163,7 @@ fn render_content(
         Route::Main => render_main(frame, app, data, content_area, theme),
         Route::Providers => render_providers(frame, app, data, content_area, theme),
         Route::Usage => render_usage(frame, app, data, content_area, theme),
+        Route::More => render_more(frame, app, content_area, theme),
         Route::UsageLogs => render_usage_logs(frame, app, data, content_area, theme),
         Route::UsageLogDetail { rowid } => {
             render_usage_log_detail(frame, app, data, content_area, theme, *rowid)

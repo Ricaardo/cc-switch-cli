@@ -499,13 +499,33 @@ mod tests {
     fn enter_more_item(app: &mut App, item: NavItem) -> Action {
         app.nav_idx = nav_index(app, NavItem::More);
         let data = UiData::default();
-        assert!(matches!(app.on_key(key(KeyCode::Enter), &data), Action::None));
+        assert!(matches!(
+            app.on_key(key(KeyCode::Enter), &data),
+            Action::SwitchRoute(Route::More)
+        ));
         let selected = NavItem::more_for_app(&app.app_type)
             .iter()
             .position(|candidate| *candidate == item)
             .expect("more item should be available for app");
-        app.overlay = Overlay::MoreMenu { selected };
+        app.more_idx = selected;
         app.on_key(key(KeyCode::Enter), &data)
+    }
+
+    #[test]
+    fn more_is_a_page_and_secondary_routes_return_to_it() {
+        let mut app = App::new(Some(AppType::Claude));
+        app.focus = Focus::Nav;
+
+        let action = enter_more_item(&mut app, NavItem::Sessions);
+
+        assert!(matches!(action, Action::SwitchRoute(Route::Sessions)));
+        assert_eq!(app.route_stack, vec![Route::Main, Route::More]);
+        assert!(matches!(
+            app.on_key(key(KeyCode::Esc), &UiData::default()),
+            Action::SwitchRoute(Route::More)
+        ));
+        assert_eq!(app.route, Route::More);
+        assert!(matches!(app.overlay, Overlay::None));
     }
 
     fn workspace_row_index(row: OpenClawWorkspaceRow) -> usize {
@@ -5711,7 +5731,7 @@ mod tests {
             Action::SwitchRoute(Route::ConfigOpenClawEnv)
         ));
         assert!(matches!(app.route, Route::ConfigOpenClawEnv));
-        assert_eq!(app.route_stack, vec![Route::Main]);
+        assert_eq!(app.route_stack, vec![Route::Main, Route::More]);
     }
 
     #[test]
@@ -5725,7 +5745,7 @@ mod tests {
             Action::SwitchRoute(Route::ConfigOpenClawWorkspace)
         ));
         assert!(matches!(app.route, Route::ConfigOpenClawWorkspace));
-        assert_eq!(app.route_stack, vec![Route::Main]);
+        assert_eq!(app.route_stack, vec![Route::Main, Route::More]);
     }
 
     #[test]
@@ -5740,19 +5760,14 @@ mod tests {
         for (nav_item, expected_route) in cases {
             let mut app = App::new(Some(AppType::Claude));
             app.focus = Focus::Nav;
-            let action = if matches!(nav_item, NavItem::Config) {
-                app.nav_idx = nav_index(&app, nav_item);
-                app.on_key(key(KeyCode::Enter), &UiData::default())
-            } else {
-                enter_more_item(&mut app, nav_item)
-            };
+            let action = enter_more_item(&mut app, nav_item);
 
             assert!(matches!(
                 action,
                 Action::SwitchRoute(actual) if actual == expected_route
             ));
             assert_eq!(app.route, expected_route);
-            assert_eq!(app.route_stack, vec![Route::Main]);
+            assert_eq!(app.route_stack, vec![Route::Main, Route::More]);
         }
     }
 
@@ -5761,13 +5776,11 @@ mod tests {
         for app_type in [AppType::Hermes, AppType::OpenClaw] {
             let mut app = App::new(Some(app_type));
             app.focus = Focus::Nav;
-            app.nav_idx = nav_index(&app, NavItem::Config);
-
-            let action = app.on_key(key(KeyCode::Enter), &UiData::default());
+            let action = enter_more_item(&mut app, NavItem::Config);
 
             assert!(matches!(action, Action::SwitchRoute(Route::Config)));
             assert_eq!(app.route, Route::Config);
-            assert_eq!(app.route_stack, vec![Route::Main]);
+            assert_eq!(app.route_stack, vec![Route::Main, Route::More]);
         }
     }
 
@@ -6482,7 +6495,7 @@ mod tests {
             Action::SwitchRoute(Route::ConfigOpenClawTools)
         ));
         assert!(matches!(app.route, Route::ConfigOpenClawTools));
-        assert_eq!(app.route_stack, vec![Route::Main]);
+        assert_eq!(app.route_stack, vec![Route::Main, Route::More]);
     }
 
     #[test]
@@ -6496,7 +6509,7 @@ mod tests {
             Action::SwitchRoute(Route::ConfigOpenClawAgents)
         ));
         assert!(matches!(app.route, Route::ConfigOpenClawAgents));
-        assert_eq!(app.route_stack, vec![Route::Main]);
+        assert_eq!(app.route_stack, vec![Route::Main, Route::More]);
     }
 
     #[test]
@@ -10842,16 +10855,16 @@ mod tests {
             .position(|item| matches!(item, SettingsItem::Icons))
             .expect("Icons missing from SettingsItem::ALL");
 
-        // No persisted value is Auto; Enter cycles Auto -> Emoji -> Ascii -> Auto.
+        // No persisted value is Ascii; Enter cycles Ascii -> Auto -> Emoji -> Ascii.
         assert!(matches!(
             app.on_key(key(KeyCode::Enter), &UiData::default()),
             Action::None
         ));
+        assert_eq!(crate::settings::get_icon_mode().as_deref(), Some("auto"));
+        app.on_key(key(KeyCode::Enter), &UiData::default());
         assert_eq!(crate::settings::get_icon_mode().as_deref(), Some("emoji"));
         app.on_key(key(KeyCode::Enter), &UiData::default());
         assert_eq!(crate::settings::get_icon_mode().as_deref(), Some("ascii"));
-        app.on_key(key(KeyCode::Enter), &UiData::default());
-        assert_eq!(crate::settings::get_icon_mode().as_deref(), Some("auto"));
 
         crate::test_support::restore_env("CC_SWITCH_ICONS", &saved_icons);
     }

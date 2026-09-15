@@ -42,9 +42,6 @@ impl App {
         if let Some(action) = self.handle_common_snippet_picker_key(key, data) {
             return Some(action);
         }
-        if let Some(action) = self.handle_more_menu_key(key) {
-            return Some(action);
-        }
         if let Some(action) = self.handle_loading_overlay_key(key) {
             return Some(action);
         }
@@ -58,49 +55,6 @@ impl App {
             return Some(action);
         }
         None
-    }
-
-    fn handle_more_menu_key(&mut self, key: KeyEvent) -> Option<Action> {
-        if !matches!(self.overlay, Overlay::MoreMenu { .. }) {
-            return None;
-        }
-        let items = crate::cli::tui::route::NavItem::more_for_app(&self.app_type);
-
-        Some(match key.code {
-            KeyCode::Esc => {
-                self.overlay = Overlay::None;
-                Action::None
-            }
-            KeyCode::Up => {
-                if let Overlay::MoreMenu { selected } = &mut self.overlay {
-                    *selected = selected.saturating_sub(1);
-                }
-                Action::None
-            }
-            KeyCode::Down => {
-                if let Overlay::MoreMenu { selected } = &mut self.overlay {
-                    if !items.is_empty() {
-                        *selected = (*selected + 1).min(items.len() - 1);
-                    }
-                }
-                Action::None
-            }
-            KeyCode::Enter => {
-                let selected = match self.overlay {
-                    Overlay::MoreMenu { selected } => selected,
-                    _ => return Some(Action::None),
-                };
-                let Some(nav_item) = items.get(selected).copied() else {
-                    return Some(Action::None);
-                };
-                let Some(route) = nav_item.to_route() else {
-                    return Some(Action::None);
-                };
-                self.overlay = Overlay::None;
-                self.push_route_and_switch(route)
-            }
-            _ => Action::None,
-        })
     }
 
     fn handle_help_overlay_key(&mut self, key: KeyEvent) -> Option<Action> {

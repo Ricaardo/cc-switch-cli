@@ -1562,6 +1562,8 @@ fn tui_usage_narrow_width_renders_without_losing_primary_sections() {
 #[test]
 fn tui_manual_usage_refresh_status_stays_visible_at_eighty_columns() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _no_color = EnvGuard::remove("NO_COLOR");
     let _lang = use_test_language(Language::English);
     let mut app = App::new(Some(AppType::Claude));
@@ -2191,6 +2193,9 @@ fn tui_sessions_list_time_column_uses_relative_time_before_date() {
 
 #[test]
 fn tui_sessions_cost_column_keeps_the_title_visible_at_eighty_columns() {
+    let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
 
     let mut app = App::new(Some(AppType::Codex));
@@ -2210,10 +2215,12 @@ fn tui_sessions_cost_column_keeps_the_title_visible_at_eighty_columns() {
         ..crate::session_manager::SessionMeta::default()
     });
 
+    // 76 columns keeps the Sessions pane narrow enough for Cost to yield now
+    // that the navigation pane no longer reserves room for the More pages.
     let rendered = all_text(&render_with_size(
         &app,
         &minimal_data(&app.app_type),
-        80,
+        76,
         24,
     ));
     // Title outranks every other column, so an 80-column pane spends its width
@@ -4456,7 +4463,17 @@ fn hermes_models_overlay_separates_models_with_dashed_divider() {
 
     let content = all_text(&render(&app, &minimal_data(&app.app_type)));
     let first_model = line_index(&content, &buffer_cell_text("model-a"));
-    let divider = line_index(&content, "┄┄┄");
+    // Search below the first model: the provider form behind the overlay has
+    // dashed dividers of its own above it.
+    let divider = first_model
+        + line_index(
+            &content
+                .lines()
+                .skip(first_model)
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "┄┄┄",
+        );
     let second_model = line_index(&content, &buffer_cell_text("model-b"));
 
     assert!(
@@ -6272,6 +6289,8 @@ fn home_shows_local_env_check_section() {
 #[test]
 fn home_updates_local_tool_versions_independently() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
     use crate::services::local_env_check::{LocalTool, ToolCheckResult, ToolCheckStatus};
@@ -10260,6 +10279,8 @@ fn openclaw_tools_route_keeps_selected_rule_visible_in_short_viewport() {
 #[test]
 fn openclaw_tools_route_ellipsizes_long_rule_values_in_narrow_width() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -10286,14 +10307,14 @@ fn openclaw_tools_route_ellipsizes_long_rule_values_in_narrow_width() {
     form.row = 0;
     app.openclaw_tools_form = Some(form);
 
-    let rendered = render_with_size(&app, &data, 72, 18);
+    let rendered = render_with_size(&app, &data, 63, 18);
     let content = content_text(&app, &rendered);
     assert!(content.contains("allow.rules.segment"), "{content}");
     assert!(content.contains('…'), "{content}");
     assert!(!content.contains(tail_fragment), "{content}");
 
     let _no_color = EnvGuard::set("NO_COLOR", "1");
-    let no_color_rendered = render_with_size(&app, &data, 72, 18);
+    let no_color_rendered = render_with_size(&app, &data, 63, 18);
     let no_color_content = content_text(&app, &no_color_rendered);
     assert!(
         no_color_content.contains("allow.rules.segment"),
@@ -10328,6 +10349,8 @@ fn openclaw_tools_route_ellipsizes_long_rule_values_in_narrow_width() {
 #[test]
 fn openclaw_tools_route_renders_unsupported_profile_warning_and_label() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -10343,7 +10366,7 @@ fn openclaw_tools_route_renders_unsupported_profile_warning_and_label() {
         extra: std::collections::HashMap::new(),
     });
 
-    let all = all_text(&render(&app, &data));
+    let all = all_text(&render_with_size(&app, &data, 111, 40));
 
     assert!(all.contains("Unsupported tools profile detected"), "{all}");
     assert!(
@@ -10730,10 +10753,7 @@ fn workspace_openclaw_nav_uses_app_specific_labels_and_hides_generic_entries() {
     let expected = [
         NavItem::Main,
         NavItem::Providers,
-        NavItem::Sessions,
         NavItem::Usage,
-        NavItem::Config,
-        NavItem::Settings,
         NavItem::More,
         NavItem::Exit,
     ]
@@ -10744,15 +10764,27 @@ fn workspace_openclaw_nav_uses_app_specific_labels_and_hides_generic_entries() {
         .collect::<Vec<_>>();
 
     assert!(positions.windows(2).all(|pair| pair[0] < pair[1]), "{all}");
-    assert!(!all.contains(&nav_label_text(NavItem::OpenClawWorkspace)), "{all}");
-    assert!(!all.contains(&nav_label_text(NavItem::OpenClawEnv)), "{all}");
-    assert!(!all.contains(&nav_label_text(NavItem::OpenClawTools)), "{all}");
-    assert!(!all.contains(&nav_label_text(NavItem::OpenClawAgents)), "{all}");
+    assert!(
+        !all.contains(&nav_label_text(NavItem::OpenClawWorkspace)),
+        "{all}"
+    );
+    assert!(
+        !all.contains(&nav_label_text(NavItem::OpenClawEnv)),
+        "{all}"
+    );
+    assert!(
+        !all.contains(&nav_label_text(NavItem::OpenClawTools)),
+        "{all}"
+    );
+    assert!(
+        !all.contains(&nav_label_text(NavItem::OpenClawAgents)),
+        "{all}"
+    );
     assert!(
         !all.contains(&buffer_cell_text(texts::menu_pricing())),
         "{all}"
     );
-    assert!(all.contains(&nav_label_text(NavItem::Config)), "{all}");
+    assert!(!all.contains(&nav_label_text(NavItem::Config)), "{all}");
 }
 
 #[test]
@@ -10767,10 +10799,7 @@ fn workspace_non_openclaw_nav_keeps_generic_labels() {
     let expected = [
         NavItem::Main,
         NavItem::Providers,
-        NavItem::Sessions,
         NavItem::Usage,
-        NavItem::Config,
-        NavItem::Settings,
         NavItem::More,
         NavItem::Exit,
     ]
@@ -10796,24 +10825,52 @@ fn workspace_non_openclaw_nav_keeps_generic_labels() {
 }
 
 #[test]
-fn more_menu_holds_advanced_entries_out_of_the_primary_nav() {
+fn more_page_holds_advanced_entries_out_of_the_primary_nav() {
     let _lock = lock_env();
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
     let mut app = App::new(Some(AppType::Claude));
-    app.overlay = Overlay::MoreMenu { selected: 0 };
+    app.route = Route::More;
+    app.focus = Focus::Content;
     let buf = render(&app, &minimal_data(&app.app_type));
     let primary_nav = nav_text(&app, &buf);
     let all = all_text(&buf);
 
-    assert!(primary_nav.contains(&nav_label_text(NavItem::More)), "{primary_nav}");
-    assert!(!primary_nav.contains(&nav_label_text(NavItem::Mcp)), "{primary_nav}");
-    assert!(!primary_nav.contains(&nav_label_text(NavItem::Skills)), "{primary_nav}");
-    assert!(!primary_nav.contains(&nav_label_text(NavItem::Prompts)), "{primary_nav}");
+    assert!(
+        primary_nav.contains(&nav_label_text(NavItem::More)),
+        "{primary_nav}"
+    );
+    assert!(
+        !primary_nav.contains(&nav_label_text(NavItem::Mcp)),
+        "{primary_nav}"
+    );
+    assert!(
+        !primary_nav.contains(&nav_label_text(NavItem::Skills)),
+        "{primary_nav}"
+    );
+    assert!(
+        !primary_nav.contains(&nav_label_text(NavItem::Prompts)),
+        "{primary_nav}"
+    );
+    assert!(
+        !primary_nav.contains(&nav_label_text(NavItem::Sessions)),
+        "{primary_nav}"
+    );
+    assert!(
+        !primary_nav.contains(&nav_label_text(NavItem::Config)),
+        "{primary_nav}"
+    );
+    assert!(
+        !primary_nav.contains(&nav_label_text(NavItem::Settings)),
+        "{primary_nav}"
+    );
     assert!(all.contains(nav_title_text(NavItem::Mcp)), "{all}");
     assert!(all.contains(nav_title_text(NavItem::Skills)), "{all}");
     assert!(all.contains(nav_title_text(NavItem::Prompts)), "{all}");
+    assert!(all.contains(nav_title_text(NavItem::Sessions)), "{all}");
+    assert!(all.contains(nav_title_text(NavItem::Config)), "{all}");
+    assert!(all.contains(nav_title_text(NavItem::Settings)), "{all}");
 }
 
 #[test]
@@ -12354,6 +12411,8 @@ fn openclaw_agents_route_render_keeps_runtime_rows_single_line_when_space_is_tig
 #[test]
 fn openclaw_agents_route_wraps_runtime_notes_and_shows_unknown_preview_values() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -12381,7 +12440,7 @@ fn openclaw_agents_route_wraps_runtime_notes_and_shows_unknown_preview_values() 
         ]),
     });
 
-    let rendered = render_with_size(&app, &data, 58, 50);
+    let rendered = render_with_size(&app, &data, 49, 50);
     let content = content_text(&app, &rendered);
     let workspace_line = line_index(
         &content,
@@ -13644,6 +13703,8 @@ fn usage_card_inner_text_with_title(buf: &Buffer, title: &str) -> String {
 #[test]
 fn home_usage_chart_renders_title_bars_and_legend() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -13654,7 +13715,7 @@ fn home_usage_chart_renders_title_bars_and_legend() {
     let mut data = minimal_data(&app.app_type);
     data.usage = usage_with_daily_models(&HOME_CHART_MODELS);
 
-    let buf = render(&app, &data);
+    let buf = render_with_size(&app, &data, 111, 40);
 
     // The card chrome carries the title and the status, like its siblings.
     let title_row = line_at(&buf, row_of(&buf, "Usage · 30d").expect("card title row"));
@@ -13677,7 +13738,7 @@ fn home_usage_chart_renders_title_bars_and_legend() {
         "content never touches the side rails:\n{card}"
     );
 
-    // 120 columns is wide enough for the models column.
+    // 111 columns is wide enough for the models column.
     assert!(card.contains("Models by Cost"), "{card}");
     assert!(card.contains("● claude-opus"), "{card}");
     assert!(
@@ -13700,6 +13761,8 @@ fn home_usage_chart_renders_title_bars_and_legend() {
 #[test]
 fn home_usage_chart_lists_the_token_breakdown_under_each_model() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -13747,6 +13810,8 @@ fn home_usage_chart_lists_the_token_breakdown_under_each_model() {
 #[test]
 fn home_usage_chart_drops_only_the_detail_lines_when_the_list_is_short() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -13775,6 +13840,8 @@ fn home_usage_chart_drops_only_the_detail_lines_when_the_list_is_short() {
 #[test]
 fn home_usage_chart_bars_span_the_whole_card_width() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -13805,6 +13872,8 @@ fn home_usage_chart_bars_span_the_whole_card_width() {
 #[test]
 fn home_usage_chart_shows_the_live_badge_while_the_proxy_routes_this_app() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -13874,6 +13943,8 @@ fn home_usage_chart_spins_while_the_first_aggregate_loads() {
 #[test]
 fn home_usage_chart_degrades_on_small_terminals_without_panicking() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -13884,9 +13955,9 @@ fn home_usage_chart_degrades_on_small_terminals_without_panicking() {
     data.usage =
         usage_with_daily_models(&[("claude-opus", 5_000, 6.0), ("claude-haiku", 1_000, 1.0)]);
 
-    // 80x23 leaves the card two body rows: the top pad plus one content row.
+    // 76x24 leaves the card two body rows: the top pad plus one content row.
     // The list header survives; the graph disappears first.
-    let small_buf = render_with_size(&app, &data, 80, 23);
+    let small_buf = render_with_size(&app, &data, 76, 24);
     let small = all_text(&small_buf);
     assert!(small.contains(&usage_card_title()), "{small}");
     assert!(small.contains("Models by Cost"), "{small}");
@@ -13906,7 +13977,7 @@ fn home_usage_chart_degrades_on_small_terminals_without_panicking() {
 
     // Extra height reveals the model rows and detail lines, but horizontal
     // space still belongs to the list rather than a chart-only fallback.
-    let tall_buf = render_with_size(&app, &data, 80, 40);
+    let tall_buf = render_with_size(&app, &data, 76, 40);
     let tall = all_text(&tall_buf);
     assert!(tall.contains("Models by Cost"), "{tall}");
     let tall_card = usage_card_inner_text(&tall_buf);
@@ -14040,6 +14111,8 @@ fn home_usage_chart_keeps_the_chart_region_ascii_in_ascii_icon_mode() {
 #[test]
 fn home_connection_card_carries_the_webdav_status_line() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -14082,6 +14155,8 @@ fn home_connection_card_carries_the_webdav_status_line() {
 #[test]
 fn home_connection_card_truncates_instead_of_wrapping_on_narrow_terminals() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::English);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -14107,8 +14182,11 @@ fn home_connection_card_truncates_instead_of_wrapping_on_narrow_terminals() {
         api_line.contains('…'),
         "the oversized URL is clipped, not wrapped:\n{api_line}"
     );
-    assert!(
-        !all.contains("long-host-long-host-long-host-long-host-"),
+    assert_eq!(
+        all.lines()
+            .filter(|line| line.contains("long-host-"))
+            .count(),
+        1,
         "no second row carries the overflow:\n{all}"
     );
     // Every card line is still on screen, the WebDAV one included. The labels
@@ -14268,6 +14346,8 @@ fn home_usage_chart_uses_distinct_slot_glyphs_without_color() {
 #[test]
 fn home_usage_chart_renders_in_chinese() {
     let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
     let _lang = use_test_language(Language::Chinese);
     let _no_color = EnvGuard::remove("NO_COLOR");
 
@@ -14977,16 +15057,16 @@ fn home_usage_card_rail_falls_back_to_the_glyph_when_the_label_will_not_fit() {
     app.note_session_sync_round(true);
     let data = minimal_data(&app.app_type);
 
-    // 52 columns leave the rail too little room for " ⠸ Refreshing ": it keeps
+    // 43 columns leave the rail too little room for " ⠸ Refreshing ": it keeps
     // the glyph rather than dropping the signal.
-    let narrow = render_with_size(&app, &data, 52, 45);
+    let narrow = render_with_size(&app, &data, 43, 45);
     let narrow_row = row_of(&narrow, &usage_card_title()).expect("usage card title row");
     let narrow_rail = line_at(&narrow, narrow_row);
     assert!(narrow_rail.contains('⠸'), "{narrow_rail}");
     assert!(!narrow_rail.contains("Refreshing"), "{narrow_rail}");
 
     // Eight more columns and the label comes back.
-    let wide = render_with_size(&app, &data, 60, 45);
+    let wide = render_with_size(&app, &data, 51, 45);
     let wide_row = row_of(&wide, &usage_card_title()).expect("usage card title row");
     let wide_rail = line_at(&wide, wide_row);
     assert!(wide_rail.contains("⠸ Refreshing"), "{wide_rail}");

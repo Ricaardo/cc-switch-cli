@@ -5,6 +5,7 @@ pub enum Route {
     Main,
     Providers,
     Usage,
+    More,
     UsageLogs,
     UsageLogDetail { rowid: i64 },
     Pricing,
@@ -56,62 +57,70 @@ pub enum NavItem {
 }
 
 impl NavItem {
-    pub const ALL: [NavItem; 8] = [
+    pub const ALL: [NavItem; 5] = [
         NavItem::Main,
         NavItem::Providers,
-        NavItem::Sessions,
         NavItem::Usage,
+        NavItem::More,
+        NavItem::Exit,
+    ];
+
+    pub const OPENCLAW_ALL: [NavItem; 5] = [
+        NavItem::Main,
+        NavItem::Providers,
+        NavItem::Usage,
+        NavItem::More,
+        NavItem::Exit,
+    ];
+
+    pub const HERMES_ALL: [NavItem; 5] = [
+        NavItem::Main,
+        NavItem::Providers,
+        NavItem::Usage,
+        NavItem::More,
+        NavItem::Exit,
+    ];
+
+    pub const PI_ALL: [NavItem; 5] = [
+        NavItem::Main,
+        NavItem::Providers,
+        NavItem::Usage,
+        NavItem::More,
+        NavItem::Exit,
+    ];
+
+    pub const MORE_ALL: [NavItem; 6] = [
+        NavItem::Sessions,
         NavItem::Config,
+        NavItem::Mcp,
+        NavItem::Skills,
+        NavItem::Prompts,
         NavItem::Settings,
-        NavItem::More,
-        NavItem::Exit,
     ];
-
-    pub const OPENCLAW_ALL: [NavItem; 8] = [
-        NavItem::Main,
-        NavItem::Providers,
+    pub const OPENCLAW_MORE: [NavItem; 7] = [
         NavItem::Sessions,
-        NavItem::Usage,
         NavItem::Config,
-        NavItem::Settings,
-        NavItem::More,
-        NavItem::Exit,
-    ];
-
-    pub const HERMES_ALL: [NavItem; 8] = [
-        NavItem::Main,
-        NavItem::Providers,
-        NavItem::Sessions,
-        NavItem::Usage,
-        NavItem::Config,
-        NavItem::Settings,
-        NavItem::More,
-        NavItem::Exit,
-    ];
-
-    pub const PI_ALL: [NavItem; 7] = [
-        NavItem::Main,
-        NavItem::Providers,
-        NavItem::Sessions,
-        NavItem::Usage,
-        NavItem::Settings,
-        NavItem::More,
-        NavItem::Exit,
-    ];
-
-    pub const MORE_ALL: [NavItem; 3] = [NavItem::Mcp, NavItem::Skills, NavItem::Prompts];
-    pub const OPENCLAW_MORE: [NavItem; 4] = [
         NavItem::OpenClawWorkspace,
         NavItem::OpenClawEnv,
         NavItem::OpenClawTools,
         NavItem::OpenClawAgents,
+        NavItem::Settings,
     ];
-    pub const HERMES_MORE: [NavItem; 3] = [NavItem::Mcp, NavItem::Skills, NavItem::HermesMemory];
-    pub const PI_MORE: [NavItem; 4] = [
+    pub const HERMES_MORE: [NavItem; 6] = [
+        NavItem::Sessions,
+        NavItem::Config,
+        NavItem::Mcp,
+        NavItem::Skills,
+        NavItem::HermesMemory,
+        NavItem::Settings,
+    ];
+    pub const PI_MORE: [NavItem; 6] = [
+        NavItem::Sessions,
         NavItem::Skills,
         NavItem::Prompts,
         NavItem::PiSystemPrompts,
         NavItem::PiPromptTemplates,
+        NavItem::Settings,
     ];
 
     pub fn all_for_app(app_type: &AppType) -> &'static [NavItem] {
@@ -150,7 +159,7 @@ impl NavItem {
             NavItem::OpenClawTools => Some(Route::ConfigOpenClawTools),
             NavItem::OpenClawAgents => Some(Route::ConfigOpenClawAgents),
             NavItem::Settings => Some(Route::Settings),
-            NavItem::More => None,
+            NavItem::More => Some(Route::More),
             NavItem::Exit => None,
         }
     }
@@ -158,8 +167,8 @@ impl NavItem {
 
 #[cfg(test)]
 mod tests {
-    use crate::app_config::AppType;
     use super::{NavItem, Route};
+    use crate::app_config::AppType;
 
     #[test]
     fn advanced_items_are_grouped_under_more() {
@@ -168,8 +177,12 @@ mod tests {
             .position(|item| matches!(item, NavItem::More))
             .expect("more nav item should exist");
 
-        assert_eq!(more, 6);
+        assert_eq!(more, 3);
         assert_eq!(NavItem::more_for_app(&AppType::Claude), &NavItem::MORE_ALL);
+        assert_eq!(
+            NavItem::ALL[..3],
+            [NavItem::Main, NavItem::Providers, NavItem::Usage]
+        );
     }
 
     #[test]
@@ -210,8 +223,8 @@ mod tests {
     }
 
     #[test]
-    fn openclaw_nav_keeps_generic_config_entry() {
-        assert!(NavItem::OPENCLAW_ALL
+    fn openclaw_more_page_keeps_generic_config_entry() {
+        assert!(NavItem::OPENCLAW_MORE
             .iter()
             .any(|item| matches!(item, NavItem::Config)));
     }
