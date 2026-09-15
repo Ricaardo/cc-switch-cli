@@ -2,7 +2,7 @@
 //!
 //! Decorative emoji glyphs (🏠 🔑 …) render double-width on some SSH and
 //! legacy terminals and break border alignment. `CC_SWITCH_ICONS` and the
-//! Settings › Icons row select the mode; `Auto` keeps emoji unless the locale
+//! Settings › Icons row select the mode (default `Ascii`); `Auto` keeps emoji unless the locale
 //! is clearly not UTF-8 (mirroring how COLORFGBG drives the theme). As with
 //! color mode, `Auto` never flips the default blindly — it only downgrades for
 //! a locale that cannot render wide glyphs; absent locale info stays emoji.
@@ -52,7 +52,7 @@ fn icon_mode_override() -> Option<IconMode> {
 }
 
 /// The configured icon mode: the `CC_SWITCH_ICONS` override wins, then the
-/// persisted Settings value, else `Auto`.
+/// persisted Settings value, else `Ascii`.
 pub fn configured_icon_mode() -> IconMode {
     if let Some(mode) = icon_mode_override() {
         return mode;

@@ -316,8 +316,10 @@ const LOCAL_ENV_CARD_HEIGHT: u16 = 4;
 /// The usage chart's floor before the environment check yields its rows.
 const HOME_CHART_MIN_HEIGHT: u16 = 8;
 const HOME_DESK_MAX_ROWS: u16 = 6;
-/// Below this width the Today card yields and providers take the whole row.
-const HOME_DESK_SPLIT_MIN_WIDTH: u16 = 64;
+/// The Today card keeps a fixed width; below this desk width it yields and
+/// the provider card carries today's cost on its title rail instead.
+const HOME_DESK_SPLIT_MIN_WIDTH: u16 = 46;
+const HOME_TODAY_CARD_WIDTH: u16 = 24;
 
 /// Rails plus up to six provider rows; never shorter than the Today card's
 /// four value rows.
@@ -337,14 +339,17 @@ fn render_home_desk(
     card_border: Style,
 ) {
     if area.width < HOME_DESK_SPLIT_MIN_WIDTH {
-        render_home_provider_card(frame, app, data, area, theme, card_border);
+        render_home_provider_card(frame, app, data, area, theme, card_border, true);
         return;
     }
     let columns = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(56), Constraint::Percentage(44)])
+        .constraints([
+            Constraint::Min(0),
+            Constraint::Length(HOME_TODAY_CARD_WIDTH),
+        ])
         .split(area);
-    render_home_provider_card(frame, app, data, columns[0], theme, card_border);
+    render_home_provider_card(frame, app, data, columns[0], theme, card_border, false);
     render_home_today_card(frame, data, columns[1], theme, card_border);
 }
 
@@ -355,6 +360,7 @@ fn render_home_provider_card(
     area: Rect,
     theme: &super::theme::Theme,
     card_border: Style,
+    cost_on_rail: bool,
 ) {
     let label = icons::strip_icon(texts::menu_manage_providers());
     let title = if matches!(app.app_type, AppType::OpenCode) {
@@ -367,7 +373,28 @@ fn render_home_provider_card(
     } else {
         texts::tui_key_switch()
     };
-    let hint = format!(" Space {switch_label} ");
+    // Without room for the Today card, today's cost takes the rail so the desk
+    // still answers both everyday questions.
+    let (hint, hint_style) = if cost_on_rail {
+        let style = if theme.no_color {
+            Style::default()
+        } else {
+            Style::default().fg(theme.warn)
+        };
+        (
+            format!(
+                " {} {} ",
+                crate::t!("Today", "今日"),
+                format_money(data.usage.summary_today.total_cost_usd)
+            ),
+            style,
+        )
+    } else {
+        (
+            format!(" Space {switch_label} "),
+            Style::default().fg(theme.comment),
+        )
+    };
     let title_width = UnicodeWidthStr::width(title.as_str());
     let hint_width = UnicodeWidthStr::width(hint.as_str());
 
@@ -376,11 +403,10 @@ fn render_home_provider_card(
         .border_type(BorderType::Plain)
         .border_style(card_border)
         .title(title);
-    if app.focus == Focus::Content && title_width + hint_width + 2 <= usize::from(area.width) {
-        block = block.title_top(
-            Line::from(Span::styled(hint, Style::default().fg(theme.comment)))
-                .alignment(Alignment::Right),
-        );
+    let show_hint = cost_on_rail || app.focus == Focus::Content;
+    if show_hint && title_width + hint_width + 2 <= usize::from(area.width) {
+        block =
+            block.title_top(Line::from(Span::styled(hint, hint_style)).alignment(Alignment::Right));
     }
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -406,11 +432,12 @@ fn render_home_provider_card(
         .iter()
         .enumerate()
         .map(|(idx, row)| {
-            let marker = pad_to_display_width(&provider_marker(app, data, row), 3);
+            let marker = provider_marker(app, data, row);
+            let marker_style = provider_marker_style(row, &marker, theme);
             let show_quota = row.is_current || idx == app.provider_idx;
             let mut spans = vec![
                 Span::raw(" "),
-                Span::styled(marker, provider_marker_style(row, theme)),
+                Span::styled(pad_to_display_width(&marker, 3), marker_style),
             ];
             spans.extend(provider_name_with_quota_line(app, data, row, show_quota, theme).spans);
             ListItem::new(Line::from(truncate_spans_to_width(spans, inner.width)))

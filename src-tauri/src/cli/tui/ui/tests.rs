@@ -6206,6 +6206,61 @@ fn home_desk_lists_providers_with_the_seal_and_today_spend() {
 }
 
 #[test]
+fn home_desk_keeps_today_in_view_on_narrow_terminals() {
+    let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _ascii = EnvGuard::set("CC_SWITCH_ICONS", "ascii");
+    let _lang = use_test_language(Language::English);
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Claude));
+    app.route = Route::Main;
+    app.focus = Focus::Content;
+    let mut data = minimal_data(&app.app_type);
+    data.usage.summary_today.total_cost_usd = 4.18;
+
+    let at_eighty = all_text(&render_with_size(&app, &data, 80, 24));
+    let desk_row = at_eighty
+        .lines()
+        .find(|line| line.contains("Demo Provider") && line.contains("Cost"))
+        .unwrap_or_else(|| panic!("80 columns keep the Today card beside providers:\n{at_eighty}"));
+    assert!(desk_row.contains("$4.180"), "{desk_row}");
+
+    let at_sixty = all_text(&render_with_size(&app, &data, 60, 20));
+    assert!(
+        at_sixty.contains("Today $4.180"),
+        "the provider rail carries today's cost when the card yields:\n{at_sixty}"
+    );
+}
+
+#[test]
+fn more_page_drops_icons_in_ascii_mode() {
+    let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _ascii = EnvGuard::set("CC_SWITCH_ICONS", "ascii");
+    let _lang = use_test_language(Language::English);
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    for app_type in [AppType::Claude, AppType::OpenClaw] {
+        let mut app = App::new(Some(app_type));
+        app.route = Route::More;
+        app.focus = Focus::Content;
+        let buf = render_with_size(&app, &minimal_data(&app.app_type), 60, 20);
+        let content = content_text(&app, &buf);
+
+        assert!(content.contains("More"), "{content}");
+        assert!(
+            !content.contains('⋯') && !content.contains('›'),
+            "{content}"
+        );
+        assert!(
+            !content.chars().any(crate::cli::tui::icons::is_emoji),
+            "{content}"
+        );
+    }
+}
+
+#[test]
 fn home_connection_card_labels_mcp_and_skills_with_active_counts() {
     let _lock = lock_env();
     let _no_color = EnvGuard::remove("NO_COLOR");
@@ -13154,6 +13209,37 @@ fn failover_provider_list_uses_current_marker_when_disabled() {
     assert!(
         current_line.contains(super::current_provider_seal()),
         "{current_line}"
+    );
+}
+
+#[test]
+fn failover_queue_label_on_the_current_provider_keeps_the_default_ink() {
+    let _lock = lock_env();
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Claude));
+    app.route = Route::Providers;
+    app.focus = Focus::Content;
+    // Keep the selection on the first row so the current row is unhighlighted.
+    app.provider_idx = 0;
+    let mut data = minimal_data(&app.app_type);
+    data.proxy.auto_failover_enabled = true;
+    data.providers.current_id = "current".to_string();
+    data.providers.rows = vec![
+        failover_provider_row("queued", "Queued Provider", false, true, Some(1)),
+        failover_provider_row("current", "Current Provider", true, true, Some(2)),
+    ];
+
+    let buf = render(&app, &data);
+    let theme = crate::cli::tui::theme::theme_for(&app.app_type);
+    let label_cell = (0..buf.area.height)
+        .flat_map(|y| (0..buf.area.width.saturating_sub(1)).map(move |x| (x, y)))
+        .find(|&(x, y)| buf[(x, y)].symbol() == "#" && buf[(x + 1, y)].symbol() == "2")
+        .expect("queue label for the current provider");
+
+    assert_ne!(
+        buf[label_cell].fg, theme.err,
+        "a failover queue label is not the live-provider seal"
     );
 }
 

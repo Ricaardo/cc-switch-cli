@@ -100,8 +100,12 @@ pub(super) fn provider_marker(app: &App, data: &UiData, row: &ProviderRow) -> St
 
 /// The cinnabar seal marks the live provider; every other marker keeps the
 /// default ink.
-pub(super) fn provider_marker_style(row: &ProviderRow, theme: &super::theme::Theme) -> Style {
-    if row.is_current && !theme.no_color {
+pub(super) fn provider_marker_style(
+    row: &ProviderRow,
+    marker: &str,
+    theme: &super::theme::Theme,
+) -> Style {
+    if row.is_current && marker == current_provider_seal() && !theme.no_color {
         Style::default().fg(theme.err).add_modifier(Modifier::BOLD)
     } else {
         Style::default()
@@ -231,7 +235,7 @@ pub(super) fn render_providers(
         let marker = provider_marker(app, data, row);
         let api = row.api_url.as_deref().unwrap_or(texts::tui_na());
         let show_quota = row.is_current || idx == app.provider_idx;
-        let marker_style = provider_marker_style(row, theme);
+        let marker_style = provider_marker_style(row, &marker, theme);
         let cells = vec![
             Cell::from(Span::styled(marker, marker_style)),
             Cell::from(provider_name_with_quota_line(

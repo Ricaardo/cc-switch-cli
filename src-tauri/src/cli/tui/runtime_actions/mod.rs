@@ -36,6 +36,7 @@ fn normalize_route_for_app(app_type: &AppType, route: &super::route::Route) -> s
     match app_type {
         AppType::OpenClaw => match route {
             super::route::Route::Main
+            | super::route::Route::More
             | super::route::Route::Providers
             | super::route::Route::Usage
             | super::route::Route::UsageLogs
@@ -55,6 +56,7 @@ fn normalize_route_for_app(app_type: &AppType, route: &super::route::Route) -> s
         },
         AppType::Hermes => match route {
             super::route::Route::Main
+            | super::route::Route::More
             | super::route::Route::Providers
             | super::route::Route::Usage
             | super::route::Route::UsageLogs
@@ -75,6 +77,7 @@ fn normalize_route_for_app(app_type: &AppType, route: &super::route::Route) -> s
         },
         AppType::Pi => match route {
             super::route::Route::Main
+            | super::route::Route::More
             | super::route::Route::Providers
             | super::route::Route::Usage
             | super::route::Route::UsageLogs
@@ -1183,6 +1186,25 @@ mod tests {
     use std::fs;
     use std::path::Path;
     use tempfile::TempDir;
+
+    #[test]
+    fn app_switch_keeps_the_more_page_for_every_app() {
+        for app_type in [
+            AppType::Claude,
+            AppType::Codex,
+            AppType::Gemini,
+            AppType::OpenCode,
+            AppType::OpenClaw,
+            AppType::Hermes,
+            AppType::Pi,
+        ] {
+            assert_eq!(
+                normalize_route_for_app(&app_type, &Route::More),
+                Route::More,
+                "{app_type:?}"
+            );
+        }
+    }
 
     struct EnvGuard {
         _lock: TestHomeSettingsLock,

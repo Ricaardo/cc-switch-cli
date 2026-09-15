@@ -10,7 +10,7 @@ const COLOR_MODE_ENV: &str = "CC_SWITCH_COLOR_MODE";
 // stays low so selected rows read clearly without making the screen glow.
 const DRACULA_GREEN: (u8, u8, u8) = (143, 166, 134);
 const DRACULA_CYAN: (u8, u8, u8) = (127, 158, 178);
-const DRACULA_PINK: (u8, u8, u8) = (165, 138, 153);
+const DRACULA_PINK: (u8, u8, u8) = (176, 130, 160);
 const DRACULA_ORANGE: (u8, u8, u8) = (176, 122, 72);
 const DRACULA_YELLOW: (u8, u8, u8) = (196, 160, 98);
 const DRACULA_RED: (u8, u8, u8) = (196, 87, 63);
@@ -21,11 +21,11 @@ const DRACULA_FG: (u8, u8, u8) = (218, 211, 192);
 
 // Light-background palette: the same hue family, darkened for contrast
 // against white terminals.
-const LIGHT_GREEN: (u8, u8, u8) = (85, 112, 77);
+const LIGHT_GREEN: (u8, u8, u8) = (78, 120, 64);
 const LIGHT_CYAN: (u8, u8, u8) = (61, 97, 119);
 const LIGHT_PINK: (u8, u8, u8) = (132, 96, 116);
 const LIGHT_ORANGE: (u8, u8, u8) = (150, 94, 45);
-const LIGHT_YELLOW: (u8, u8, u8) = (138, 105, 45);
+const LIGHT_YELLOW: (u8, u8, u8) = (142, 116, 44);
 const LIGHT_RED: (u8, u8, u8) = (166, 58, 37);
 const LIGHT_CORAL: (u8, u8, u8) = (140, 55, 72);
 const LIGHT_COMMENT: (u8, u8, u8) = (110, 103, 88);
@@ -710,6 +710,23 @@ mod tests {
         );
         assert_eq!(rgb_to_ansi256(LIGHT_DIM.0, LIGHT_DIM.1, LIGHT_DIM.2), 246);
         assert_eq!(rgb_to_ansi256(LIGHT_FG.0, LIGHT_FG.1, LIGHT_FG.2), 235);
+        // Status and accent hues must stay chromatic and apart once quantized.
+        assert_eq!(
+            rgb_to_ansi256(LIGHT_GREEN.0, LIGHT_GREEN.1, LIGHT_GREEN.2),
+            65
+        );
+        assert_eq!(
+            rgb_to_ansi256(LIGHT_YELLOW.0, LIGHT_YELLOW.1, LIGHT_YELLOW.2),
+            100
+        );
+        assert_eq!(
+            rgb_to_ansi256(LIGHT_ORANGE.0, LIGHT_ORANGE.1, LIGHT_ORANGE.2),
+            94
+        );
+        assert_eq!(
+            rgb_to_ansi256(DRACULA_PINK.0, DRACULA_PINK.1, DRACULA_PINK.2),
+            139
+        );
         // Semantic foregrounds in dark mode: strong text bright, text on
         // accent chips near-black.
         assert_eq!(

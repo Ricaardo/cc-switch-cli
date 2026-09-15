@@ -1,6 +1,16 @@
 use super::*;
 use crate::cli::tui::route::MoreGroup;
 
+/// ASCII mode drops the leading glyph, as the primary navigation does; `⋯`
+/// is not an emoji, so `strip_icon` alone would keep it.
+fn more_label(label: &'static str) -> &'static str {
+    if icons::use_emoji() {
+        label
+    } else {
+        split_nav_label(label).1
+    }
+}
+
 fn more_group_label(group: MoreGroup) -> &'static str {
     match group {
         MoreGroup::Records => crate::t!("Records", "记录"),
@@ -21,7 +31,7 @@ pub(super) fn render_more(
         area,
         theme,
         app,
-        texts::menu_more(),
+        more_label(texts::menu_more()),
         &[
             ("↑↓", texts::tui_key_select()),
             ("Enter", texts::tui_key_open()),
@@ -36,6 +46,7 @@ pub(super) fn render_more(
     let heading_style = Style::default()
         .fg(theme.comment)
         .add_modifier(Modifier::BOLD);
+    let chevron = if icons::use_emoji() { "  ›" } else { "  >" };
     let mut rows = Vec::new();
     let mut selected_row = None;
     let mut current_group = None;
@@ -56,8 +67,8 @@ pub(super) fn render_more(
         }
         rows.push(ListItem::new(Line::from(vec![
             Span::raw("  "),
-            Span::raw(nav_label(*item)),
-            Span::styled("  ›", Style::default().fg(theme.dim)),
+            Span::raw(more_label(nav_label(*item))),
+            Span::styled(chevron, Style::default().fg(theme.dim)),
         ])));
     }
 
