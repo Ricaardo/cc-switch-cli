@@ -6163,11 +6163,46 @@ fn home_replaces_the_logo_hero_with_the_usage_chart() {
     assert!(!all.contains("___  ___"), "{all}");
     assert!(all.contains(&usage_card_title()), "{all}");
     assert!(all.contains("Connection Details"));
+    let desk_row = line_index(&all, "Today");
     assert_eq!(
-        line_index(&all, "Connection Details"),
+        desk_row,
         line_index(&all, "CC-Switch") + 1,
-        "connection details should start directly below the home title"
+        "the provider and today desk should start directly below the home title"
     );
+    assert!(
+        line_index(&all, "Connection Details") > desk_row,
+        "connection details follow the desk:\n{all}"
+    );
+}
+
+#[test]
+fn home_desk_lists_providers_with_the_seal_and_today_spend() {
+    let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _emoji = EnvGuard::set("CC_SWITCH_ICONS", "emoji");
+    let _lang = use_test_language(Language::English);
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Claude));
+    app.route = Route::Main;
+    app.focus = Focus::Content;
+    let mut data = minimal_data(&app.app_type);
+    data.providers.rows[0].is_current = true;
+    data.usage.summary_today.total_cost_usd = 4.18;
+    data.usage.summary_today.input_tokens = 1_240_000;
+
+    let all = all_text(&render(&app, &data));
+    let desk_row = all
+        .lines()
+        .find(|line| line.contains("Demo Provider") && line.contains("Cost"))
+        .unwrap_or_else(|| panic!("the desk pairs providers with today's spend:\n{all}"));
+    assert!(
+        desk_row.contains(super::current_provider_seal()),
+        "{desk_row}"
+    );
+    assert!(desk_row.contains("$4.180"), "{desk_row}");
+    assert!(all.contains("1.2M"), "{all}");
+    assert!(all.contains("Space switch"), "{all}");
 }
 
 #[test]
@@ -6352,7 +6387,8 @@ fn home_treats_version_timeout_as_installed_but_unavailable() {
     });
     let data = minimal_data(&app.app_type);
 
-    let all = all_text(&render(&app, &data));
+    // One-line cells need a wide terminal to show the full status text.
+    let all = all_text(&render_with_size(&app, &data, 160, 40));
     let hermes_line = all
         .lines()
         .find(|line| line.contains("Hermes"))
@@ -13955,9 +13991,10 @@ fn home_usage_chart_degrades_on_small_terminals_without_panicking() {
     data.usage =
         usage_with_daily_models(&[("claude-opus", 5_000, 6.0), ("claude-haiku", 1_000, 1.0)]);
 
-    // 76x24 leaves the card two body rows: the top pad plus one content row.
-    // The list header survives; the graph disappears first.
-    let small_buf = render_with_size(&app, &data, 76, 24);
+    // 76x22 leaves the card two body rows once the environment check has
+    // yielded: the top pad plus one content row. The list header survives;
+    // the graph disappears first.
+    let small_buf = render_with_size(&app, &data, 76, 22);
     let small = all_text(&small_buf);
     assert!(small.contains(&usage_card_title()), "{small}");
     assert!(small.contains("Models by Cost"), "{small}");
@@ -14192,7 +14229,7 @@ fn home_connection_card_truncates_instead_of_wrapping_on_narrow_terminals() {
     // Every card line is still on screen, the WebDAV one included. The labels
     // are padded to a fixed column, which also keeps the header's own
     // "Provider:" badge out of the count.
-    for label in ["Provider      :", "API URL       :", "WebDAV Sync   :"] {
+    for label in ["Extensions    :", "API URL       :", "WebDAV Sync   :"] {
         assert_eq!(
             all.lines().filter(|line| line.contains(label)).count(),
             1,
@@ -14263,19 +14300,22 @@ fn home_keeps_webdav_visible_below_a_long_quota_on_narrow_terminals() {
     webdav.status.last_error = Some("auth failed".to_string());
     data.config.webdav_sync = Some(webdav);
 
+    // The quota now rides on the desk's provider row; it must not push the
+    // WebDAV line out of the connection card on a narrow terminal.
     let all = all_text(&render_with_size(&app, &data, 70, 30));
-    let quota_row = all
-        .lines()
-        .find(|line| line.contains("Quota"))
-        .expect("quota row");
     let webdav_row = all
         .lines()
         .find(|line| line.contains("WebDAV Sync"))
         .expect("WebDAV keeps its own row");
-
-    assert!(quota_row.contains("an-extremely"), "{quota_row}");
     assert!(webdav_row.contains("Error"), "{webdav_row}");
     assert!(webdav_row.contains("auth failed"), "{webdav_row}");
+
+    let wide = all_text(&render_with_size(&app, &data, 160, 30));
+    let provider_row = wide
+        .lines()
+        .find(|line| line.contains("Demo Provider") && line.contains("an-extremely"))
+        .unwrap_or_else(|| panic!("the desk row carries the quota:\n{wide}"));
+    assert!(!provider_row.contains("WebDAV"), "{provider_row}");
 }
 
 /// A pathological value must clip, not drive the layout through a wrapped

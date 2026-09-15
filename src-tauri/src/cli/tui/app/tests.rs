@@ -2885,6 +2885,59 @@ mod tests {
         assert!(matches!(action, Action::ProviderSwitch { id } if id == "p1"));
     }
 
+    fn home_desk_data() -> UiData {
+        let mut data = UiData::default();
+        data.providers.rows.push(super::super::data::ProviderRow {
+            id: "p1".to_string(),
+            provider: crate::provider::Provider::with_id(
+                "p1".to_string(),
+                "Provider One".to_string(),
+                json!({"env":{"ANTHROPIC_BASE_URL":"https://example.com"}}),
+                None,
+            ),
+            api_url: Some("https://example.com".to_string()),
+            is_current: false,
+            is_in_config: true,
+            is_saved: true,
+            is_default_model: false,
+            primary_model_id: None,
+            default_model_id: None,
+        });
+        data
+    }
+
+    #[test]
+    fn home_right_key_focuses_the_provider_desk() {
+        let mut app = App::new(Some(AppType::Claude));
+        app.route = Route::Main;
+        app.focus = Focus::Nav;
+
+        app.on_key(key(KeyCode::Right), &home_desk_data());
+        assert_eq!(app.focus, Focus::Content);
+    }
+
+    #[test]
+    fn home_desk_space_switches_the_selected_provider() {
+        let mut app = App::new(Some(AppType::Claude));
+        app.route = Route::Main;
+        app.focus = Focus::Content;
+
+        let action = app.on_key(key(KeyCode::Char(' ')), &home_desk_data());
+        assert!(matches!(action, Action::ProviderSwitch { id } if id == "p1"));
+    }
+
+    #[test]
+    fn home_desk_enter_opens_the_providers_page() {
+        let mut app = App::new(Some(AppType::Claude));
+        app.route = Route::Main;
+        app.focus = Focus::Content;
+
+        let action = app.on_key(key(KeyCode::Enter), &home_desk_data());
+        assert!(matches!(action, Action::SwitchRoute(Route::Providers)));
+        assert_eq!(app.route, Route::Providers);
+        assert_eq!(app.focus, Focus::Content);
+    }
+
     #[test]
     fn providers_r_key_refreshes_official_quota() {
         let mut app = App::new(Some(AppType::Claude));

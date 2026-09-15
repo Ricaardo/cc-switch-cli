@@ -1139,6 +1139,12 @@ impl App {
             Route::Main => match key.code {
                 KeyCode::Char('r') => Action::LocalEnvRefresh,
                 KeyCode::Char('p') | KeyCode::Char('P') => self.main_proxy_action(data),
+                // The home desk lists providers: move and switch in place;
+                // Enter opens the full Providers page on the same row.
+                KeyCode::Up | KeyCode::Down | KeyCode::Char(' ') | KeyCode::Char('s') => {
+                    self.on_providers_key(key, data)
+                }
+                KeyCode::Enter => self.push_route_and_switch(Route::Providers),
                 _ => Action::None,
             },
         }

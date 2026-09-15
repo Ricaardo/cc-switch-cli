@@ -51,8 +51,6 @@ pub(super) fn render_main(
     area: Rect,
     theme: &super::theme::Theme,
 ) {
-    let current_provider = main_provider_status(app, data);
-
     let mcp_enabled = data
         .mcp
         .rows
@@ -70,13 +68,6 @@ pub(super) fn render_main(
 
     let label_width = 14;
     let value_style = Style::default().fg(theme.cyan);
-    let provider_name_style = if theme.no_color {
-        Style::default().add_modifier(Modifier::BOLD)
-    } else {
-        Style::default()
-            .fg(theme.fg_strong)
-            .add_modifier(Modifier::BOLD)
-    };
 
     let proxy_running = data.proxy.running;
     let current_app_routed = data
@@ -99,23 +90,15 @@ pub(super) fn render_main(
         .iter()
         .filter(|row| row.provider.in_failover_queue)
         .count();
-    let current_quota_line = data
-        .providers
-        .rows
-        .iter()
-        .find(|row| row.is_current)
-        .filter(|row| data::quota_target_for_provider(&app.app_type, row).is_some())
-        .and_then(|row| quota_compact_line(data.quota.state_for(&row.id), theme, true));
 
     let mut connection_lines = vec![
+        // The provider name and quota live on the desk above; this card keeps
+        // the extension counts, endpoint and sync state.
         kv_line(
             theme,
-            texts::provider_label(),
+            crate::t!("Extensions", "扩展"),
             label_width,
             vec![
-                Span::styled(current_provider.clone(), provider_name_style),
-                // Do not claim a connection state until a real health check has run.
-                Span::raw("   "),
                 Span::styled(
                     format!("{} ", texts::tui_label_mcp_short()),
                     Style::default()
@@ -160,15 +143,6 @@ pub(super) fn render_main(
             vec![Span::styled(api_url, value_style)],
         ),
     ];
-    if let Some(quota) = current_quota_line {
-        connection_lines.push(kv_line(
-            theme,
-            texts::tui_label_quota(),
-            label_width,
-            quota.spans,
-        ));
-    }
-
     let webdav = data.config.webdav_sync.as_ref();
     let is_config_value_set = |value: &str| !value.trim().is_empty();
     let webdav_enabled = webdav.map(|cfg| cfg.enabled).unwrap_or(false);
@@ -288,19 +262,36 @@ pub(super) fn render_main(
         .constraints([Constraint::Min(0), Constraint::Length(bottom_hero_height)])
         .split(content);
 
+    let desk_height = home_desk_height(app, data);
+    // Short terminals drop the environment check first, so the usage chart
+    // keeps a readable body under the desk and the connection card.
+    let env_card_height = if chunks[0].height
+        >= desk_height
+            .saturating_add(connection_card_height)
+            .saturating_add(LOCAL_ENV_CARD_HEIGHT)
+            .saturating_add(HOME_CHART_MIN_HEIGHT)
+    {
+        LOCAL_ENV_CARD_HEIGHT
+    } else {
+        0
+    };
     let top_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
+            Constraint::Length(desk_height),
             Constraint::Length(connection_card_height),
-            Constraint::Length(8),
+            Constraint::Length(env_card_height),
             Constraint::Min(0),
         ])
         .split(chunks[0]);
 
     let card_border = Style::default().fg(theme.dim);
-    render_connection_card(frame, top_chunks[0], theme, &connection_lines, card_border);
-    render_local_env_check_card(frame, app, top_chunks[1], theme, card_border);
-    render_home_usage_chart(frame, app, data, top_chunks[2], theme, card_border);
+    render_home_desk(frame, app, data, top_chunks[0], theme, card_border);
+    render_connection_card(frame, top_chunks[1], theme, &connection_lines, card_border);
+    if env_card_height > 0 {
+        render_local_env_check_card(frame, app, top_chunks[2], theme, card_border);
+    }
+    render_home_usage_chart(frame, app, data, top_chunks[3], theme, card_border);
 
     if current_app_routed {
         render_proxy_activity_dashboard(
@@ -319,6 +310,190 @@ pub(super) fn render_main(
             data.proxy.estimated_output_tokens_total,
         );
     }
+}
+
+const LOCAL_ENV_CARD_HEIGHT: u16 = 4;
+/// The usage chart's floor before the environment check yields its rows.
+const HOME_CHART_MIN_HEIGHT: u16 = 8;
+const HOME_DESK_MAX_ROWS: u16 = 6;
+/// Below this width the Today card yields and providers take the whole row.
+const HOME_DESK_SPLIT_MIN_WIDTH: u16 = 64;
+
+/// Rails plus up to six provider rows; never shorter than the Today card's
+/// four value rows.
+fn home_desk_height(app: &App, data: &UiData) -> u16 {
+    let rows = u16::try_from(provider_rows_filtered(app, data).len()).unwrap_or(u16::MAX);
+    rows.clamp(4, HOME_DESK_MAX_ROWS).saturating_add(2)
+}
+
+/// The two high-frequency jobs share the first row: switching providers on
+/// the left, today's token spend on the right.
+fn render_home_desk(
+    frame: &mut Frame<'_>,
+    app: &App,
+    data: &UiData,
+    area: Rect,
+    theme: &super::theme::Theme,
+    card_border: Style,
+) {
+    if area.width < HOME_DESK_SPLIT_MIN_WIDTH {
+        render_home_provider_card(frame, app, data, area, theme, card_border);
+        return;
+    }
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(56), Constraint::Percentage(44)])
+        .split(area);
+    render_home_provider_card(frame, app, data, columns[0], theme, card_border);
+    render_home_today_card(frame, data, columns[1], theme, card_border);
+}
+
+fn render_home_provider_card(
+    frame: &mut Frame<'_>,
+    app: &App,
+    data: &UiData,
+    area: Rect,
+    theme: &super::theme::Theme,
+    card_border: Style,
+) {
+    let label = icons::strip_icon(texts::menu_manage_providers());
+    let title = if matches!(app.app_type, AppType::OpenCode) {
+        format!(" {label} · {} ", main_provider_status(app, data))
+    } else {
+        format!(" {label} ")
+    };
+    let switch_label = if app.app_type.is_additive_mode() {
+        texts::tui_key_add_remove()
+    } else {
+        texts::tui_key_switch()
+    };
+    let hint = format!(" Space {switch_label} ");
+    let title_width = UnicodeWidthStr::width(title.as_str());
+    let hint_width = UnicodeWidthStr::width(hint.as_str());
+
+    let mut block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Plain)
+        .border_style(card_border)
+        .title(title);
+    if app.focus == Focus::Content && title_width + hint_width + 2 <= usize::from(area.width) {
+        block = block.title_top(
+            Line::from(Span::styled(hint, Style::default().fg(theme.comment)))
+                .alignment(Alignment::Right),
+        );
+    }
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    if data.providers.rows.is_empty() {
+        let text = if data.providers.loading {
+            texts::tui_provider_loading()
+        } else {
+            texts::tui_provider_empty_title()
+        };
+        frame.render_widget(
+            Paragraph::new(Line::styled(
+                format!(" {text}"),
+                Style::default().fg(theme.comment),
+            )),
+            inner,
+        );
+        return;
+    }
+
+    let rows = provider_rows_filtered(app, data);
+    let items = rows
+        .iter()
+        .enumerate()
+        .map(|(idx, row)| {
+            let marker = pad_to_display_width(&provider_marker(app, data, row), 3);
+            let show_quota = row.is_current || idx == app.provider_idx;
+            let mut spans = vec![
+                Span::raw(" "),
+                Span::styled(marker, provider_marker_style(row, theme)),
+            ];
+            spans.extend(provider_name_with_quota_line(app, data, row, show_quota, theme).spans);
+            ListItem::new(Line::from(truncate_spans_to_width(spans, inner.width)))
+        })
+        .collect::<Vec<_>>();
+
+    let mut list = List::new(items);
+    if app.focus == Focus::Content {
+        list = list.highlight_style(selection_style(theme));
+    }
+    let mut state = ListState::default();
+    state.select(Some(app.provider_idx.min(rows.len().saturating_sub(1))));
+    frame.render_stateful_widget(list, inner, &mut state);
+}
+
+fn render_home_today_card(
+    frame: &mut Frame<'_>,
+    data: &UiData,
+    area: Rect,
+    theme: &super::theme::Theme,
+    card_border: Style,
+) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Plain)
+        .border_style(card_border)
+        .title(format!(" {} ", crate::t!("Today", "今日")));
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let summary = &data.usage.summary_today;
+    let label_width = 8;
+    let value_style = if theme.no_color {
+        Style::default()
+    } else {
+        Style::default().fg(theme.fg_strong)
+    };
+    let cost_style = if theme.no_color {
+        Style::default().add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(theme.warn).add_modifier(Modifier::BOLD)
+    };
+    let value = |text: String, style: Style| vec![Span::styled(text, style)];
+
+    // Ordered by how often the number is the reason for looking: rows fall
+    // off the bottom first on short terminals.
+    let lines = [
+        kv_line(
+            theme,
+            crate::t!("Cost", "花费"),
+            label_width,
+            value(format_money(summary.total_cost_usd), cost_style),
+        ),
+        kv_line(
+            theme,
+            crate::t!("Input", "输入"),
+            label_width,
+            value(format_token_compact(summary.input_tokens), value_style),
+        ),
+        kv_line(
+            theme,
+            crate::t!("Output", "输出"),
+            label_width,
+            value(format_token_compact(summary.output_tokens), value_style),
+        ),
+        kv_line(
+            theme,
+            crate::t!("Cache", "缓存读"),
+            label_width,
+            value(format_token_compact(summary.cache_read_tokens), value_style),
+        ),
+        kv_line(
+            theme,
+            crate::t!("Requests", "请求"),
+            label_width,
+            value(summary.total_requests.to_string(), value_style),
+        ),
+    ]
+    .into_iter()
+    .map(|line| Line::from(truncate_spans_to_width(line.spans, inner.width)))
+    .collect::<Vec<_>>();
+
+    frame.render_widget(Paragraph::new(lines), inner);
 }
 
 /// Section separator used by the home cards; ASCII mode drops the middle dot.
@@ -562,13 +737,11 @@ fn render_local_env_check_card(
     frame.render_widget(outer.clone(), area);
     let inner = outer.inner(area);
 
+    // Two rows of three one-line cells: the check stays on the home page
+    // without spending a third of its height.
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(2),
-            Constraint::Length(2),
-            Constraint::Length(2),
-        ])
+        .constraints([Constraint::Length(1), Constraint::Length(1)])
         .split(inner);
 
     let row_columns = rows
@@ -576,7 +749,11 @@ fn render_local_env_check_card(
         .map(|row| {
             Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .constraints([
+                    Constraint::Ratio(1, 3),
+                    Constraint::Ratio(1, 3),
+                    Constraint::Ratio(1, 3),
+                ])
                 .split(*row)
         })
         .collect::<Vec<_>>();
@@ -681,24 +858,20 @@ fn render_local_env_tool_cell(
         }
     };
 
-    let detail_width = cell_area.width.saturating_sub(1);
-    let detail_text = truncate_to_display_width(&detail_text, detail_width);
-
-    let lines = vec![
-        Line::from(vec![
-            Span::raw(" "),
-            Span::styled(">_ ", Style::default().fg(theme.surface)),
-            Span::styled(display_name.to_string(), name_style),
-            Span::raw(" "),
-            Span::styled(icon.to_string(), icon_style),
-        ]),
-        Line::from(vec![
-            Span::raw(" "),
-            Span::styled(detail_text, detail_line_style),
-        ]),
+    let spans = vec![
+        Span::raw(" "),
+        Span::styled(">_ ", Style::default().fg(theme.surface)),
+        Span::styled(display_name.to_string(), name_style),
+        Span::raw(" "),
+        Span::styled(icon.to_string(), icon_style),
+        Span::raw(" "),
+        Span::styled(detail_text, detail_line_style),
     ];
 
-    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), cell_area);
+    frame.render_widget(
+        Paragraph::new(Line::from(truncate_spans_to_width(spans, cell_area.width))),
+        cell_area,
+    );
 }
 
 #[cfg(test)]

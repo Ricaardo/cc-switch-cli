@@ -685,7 +685,8 @@ impl<'a> OpenClawDailyMemoryListItem<'a> {
 pub(crate) fn route_has_content_list(route: &Route) -> bool {
     matches!(
         route,
-        Route::Providers
+        Route::Main
+            | Route::Providers
             | Route::Usage
             | Route::More
             | Route::UsageLogs

@@ -72,6 +72,42 @@ pub(super) fn current_provider_seal() -> &'static str {
     }
 }
 
+/// Row marker shared by the Providers page and the home desk.
+pub(super) fn provider_marker(app: &App, data: &UiData, row: &ProviderRow) -> String {
+    let failover_supported = crate::cli::tui::app::supports_failover_controls(&app.app_type);
+    if failover_supported && data.proxy.auto_failover_enabled {
+        failover_queue_label(data, &row.id)
+    } else if matches!(app.app_type, AppType::OpenClaw | AppType::Hermes) {
+        if row.is_default_model {
+            "*".to_string()
+        } else if row.is_in_config {
+            "+".to_string()
+        } else {
+            String::new()
+        }
+    } else if matches!(app.app_type, AppType::OpenCode | AppType::Pi) {
+        if row.is_in_config {
+            "+".to_string()
+        } else {
+            String::new()
+        }
+    } else if row.is_current {
+        current_provider_seal().to_string()
+    } else {
+        texts::tui_marker_inactive().to_string()
+    }
+}
+
+/// The cinnabar seal marks the live provider; every other marker keeps the
+/// default ink.
+pub(super) fn provider_marker_style(row: &ProviderRow, theme: &super::theme::Theme) -> Style {
+    if row.is_current && !theme.no_color {
+        Style::default().fg(theme.err).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default()
+    }
+}
+
 fn failover_queue_label(data: &UiData, provider_id: &str) -> String {
     failover_queue_position(data, provider_id)
         .map(|position| format!("#{position}"))
@@ -96,7 +132,7 @@ pub(super) fn provider_rows_filtered<'a>(app: &App, data: &'a UiData) -> Vec<&'a
         .collect()
 }
 
-fn provider_name_with_quota_line(
+pub(super) fn provider_name_with_quota_line(
     app: &App,
     data: &UiData,
     row: &ProviderRow,
@@ -184,7 +220,6 @@ pub(super) fn render_providers(
         return;
     }
 
-    let failover_supported = crate::cli::tui::app::supports_failover_controls(&app.app_type);
     let header_cells = vec![
         Cell::from(""),
         Cell::from(texts::header_name()),
@@ -193,36 +228,10 @@ pub(super) fn render_providers(
     let header = Row::new(header_cells).style(header_style);
 
     let rows = visible.iter().enumerate().map(|(idx, row)| {
-        let marker = if failover_supported && data.proxy.auto_failover_enabled {
-            failover_queue_label(data, &row.id)
-        } else if matches!(app.app_type, AppType::OpenClaw | AppType::Hermes) {
-            if row.is_default_model {
-                "*".to_string()
-            } else if row.is_in_config {
-                "+".to_string()
-            } else {
-                String::new()
-            }
-        } else if matches!(app.app_type, AppType::OpenCode | AppType::Pi) {
-            if row.is_in_config {
-                "+".to_string()
-            } else {
-                String::new()
-            }
-        } else if row.is_current {
-            current_provider_seal().to_string()
-        } else {
-            texts::tui_marker_inactive().to_string()
-        };
+        let marker = provider_marker(app, data, row);
         let api = row.api_url.as_deref().unwrap_or(texts::tui_na());
         let show_quota = row.is_current || idx == app.provider_idx;
-        // The cinnabar seal marks the live provider; every other marker keeps
-        // the default ink.
-        let marker_style = if row.is_current && !theme.no_color {
-            Style::default().fg(theme.err).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default()
-        };
+        let marker_style = provider_marker_style(row, theme);
         let cells = vec![
             Cell::from(Span::styled(marker, marker_style)),
             Cell::from(provider_name_with_quota_line(
