@@ -61,16 +61,16 @@ const BAR_GUTTER_MIN_SPAN: usize = 3;
 const BLOCKS_UNICODE: [&str; 9] = [" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
 const BLOCKS_ASCII: [&str; 9] = [" ", ".", ":", "-", "=", "+", "*", "%", "#"];
 
-/// Categorical series palette. Muted Dracula-adjacent hues, deliberately less
-/// saturated than the status colors: ok/warn/err stay reserved for status, so
-/// a model can never read as "healthy" or "failing". The four entries survive
-/// 256-color quantization as distinct indices (104 / 73 / 175 / 180) and are
-/// routed through [`Theme::shade`] so NoColor degrades with everything else.
+/// Categorical series palette. Muted mineral hues kept apart from the status
+/// colors: ok/warn/err stay reserved for status, so a model can never read as
+/// "healthy" or "failing". The four entries must survive 256-color
+/// quantization as distinct indices and are routed through [`Theme::shade`]
+/// so NoColor degrades with everything else.
 const SERIES_PALETTE: [(u8, u8, u8); 4] = [
-    (122, 148, 205), // periwinkle
-    (99, 170, 165),  // teal
-    (198, 145, 172), // dusty rose
-    (196, 166, 124), // sand
+    (111, 129, 150), // 黛 indigo ink
+    (110, 160, 150), // 蟹壳青 crab-shell celadon
+    (168, 136, 152), // 藕荷 lotus-root mauve
+    (180, 146, 108), // 驼 camel
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

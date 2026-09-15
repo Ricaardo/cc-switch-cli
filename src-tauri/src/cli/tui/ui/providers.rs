@@ -63,6 +63,15 @@ fn provider_proxy_badge_style(badge: ProviderProxyBadge, theme: &super::theme::T
     }
 }
 
+/// Seal glyph for the live provider; ASCII mode falls back to `*`.
+pub(super) fn current_provider_seal() -> &'static str {
+    if icons::use_emoji() {
+        "◆"
+    } else {
+        "*"
+    }
+}
+
 fn failover_queue_label(data: &UiData, provider_id: &str) -> String {
     failover_queue_position(data, provider_id)
         .map(|position| format!("#{position}"))
@@ -201,14 +210,21 @@ pub(super) fn render_providers(
                 String::new()
             }
         } else if row.is_current {
-            texts::tui_marker_active().to_string()
+            current_provider_seal().to_string()
         } else {
             texts::tui_marker_inactive().to_string()
         };
         let api = row.api_url.as_deref().unwrap_or(texts::tui_na());
         let show_quota = row.is_current || idx == app.provider_idx;
+        // The cinnabar seal marks the live provider; every other marker keeps
+        // the default ink.
+        let marker_style = if row.is_current && !theme.no_color {
+            Style::default().fg(theme.err).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default()
+        };
         let cells = vec![
-            Cell::from(marker),
+            Cell::from(Span::styled(marker, marker_style)),
             Cell::from(provider_name_with_quota_line(
                 app, data, row, show_quota, theme,
             )),

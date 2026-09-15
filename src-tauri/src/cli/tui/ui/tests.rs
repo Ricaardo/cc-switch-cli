@@ -13104,7 +13104,7 @@ fn failover_provider_list_uses_current_marker_when_disabled() {
         .expect("current provider row rendered");
 
     assert!(
-        current_line.contains(texts::tui_marker_active()),
+        current_line.contains(super::current_provider_seal()),
         "{current_line}"
     );
 }
