@@ -6,15 +6,16 @@ const COLOR_MODE_ENV: &str = "CC_SWITCH_COLOR_MODE";
 
 // Ink-and-mineral palette tuned for long terminal sessions: 石青 (azurite)
 // carries focus, 铜绿 (verdigris) and 赭 (ochre) carry status, 朱砂
-// (cinnabar) is reserved for errors and the current-item seal. Saturation
-// stays low so selected rows read clearly without making the screen glow.
-const DRACULA_GREEN: (u8, u8, u8) = (143, 166, 134);
-const DRACULA_CYAN: (u8, u8, u8) = (127, 158, 178);
-const DRACULA_PINK: (u8, u8, u8) = (176, 130, 160);
-const DRACULA_ORANGE: (u8, u8, u8) = (176, 122, 72);
-const DRACULA_YELLOW: (u8, u8, u8) = (196, 160, 98);
-const DRACULA_RED: (u8, u8, u8) = (196, 87, 63);
-const OPENCLAW_CORAL: (u8, u8, u8) = (190, 104, 116);
+// (cinnabar) is reserved for errors and the current-item seal. Pigments stay
+// clearly mineral without neon glow; every accent keeps selected-row text
+// above 4.5:1 and a distinct chromatic 256-color index.
+const DRACULA_GREEN: (u8, u8, u8) = (122, 178, 104);
+const DRACULA_CYAN: (u8, u8, u8) = (98, 158, 198);
+const DRACULA_PINK: (u8, u8, u8) = (196, 116, 170);
+const DRACULA_ORANGE: (u8, u8, u8) = (206, 120, 56);
+const DRACULA_YELLOW: (u8, u8, u8) = (218, 166, 72);
+const DRACULA_RED: (u8, u8, u8) = (216, 84, 58);
+const OPENCLAW_CORAL: (u8, u8, u8) = (208, 100, 130);
 const DRACULA_COMMENT: (u8, u8, u8) = (125, 119, 104);
 // Surface doubles as a muted text color, so it stays light enough to read
 // on dark terminal grounds (2.5:1 on black) while still carrying fg text.
@@ -23,13 +24,13 @@ const DRACULA_FG: (u8, u8, u8) = (218, 211, 192);
 
 // Light-background palette: the same hue family, darkened for contrast
 // against white terminals.
-const LIGHT_GREEN: (u8, u8, u8) = (78, 120, 64);
-const LIGHT_CYAN: (u8, u8, u8) = (61, 97, 119);
-const LIGHT_PINK: (u8, u8, u8) = (132, 96, 116);
-const LIGHT_ORANGE: (u8, u8, u8) = (150, 94, 45);
-const LIGHT_YELLOW: (u8, u8, u8) = (142, 116, 44);
-const LIGHT_RED: (u8, u8, u8) = (166, 58, 37);
-const LIGHT_CORAL: (u8, u8, u8) = (140, 55, 72);
+const LIGHT_GREEN: (u8, u8, u8) = (50, 120, 30);
+const LIGHT_CYAN: (u8, u8, u8) = (30, 90, 130);
+const LIGHT_PINK: (u8, u8, u8) = (142, 72, 116);
+const LIGHT_ORANGE: (u8, u8, u8) = (166, 86, 20);
+const LIGHT_YELLOW: (u8, u8, u8) = (148, 110, 14);
+const LIGHT_RED: (u8, u8, u8) = (178, 46, 24);
+const LIGHT_CORAL: (u8, u8, u8) = (152, 40, 66);
 const LIGHT_COMMENT: (u8, u8, u8) = (110, 103, 88);
 const LIGHT_DIM: (u8, u8, u8) = (160, 152, 132);
 const LIGHT_SURFACE: (u8, u8, u8) = (224, 216, 196);
@@ -450,7 +451,7 @@ mod tests {
         let opencode = theme_for(&AppType::OpenCode);
         let codex = theme_for(&AppType::Codex);
 
-        assert_eq!(openclaw.accent, Color::Rgb(190, 104, 116));
+        assert_eq!(openclaw.accent, Color::Rgb(208, 100, 130));
         assert_ne!(openclaw.accent, opencode.accent);
         assert_ne!(openclaw.accent, codex.accent);
     }
@@ -466,7 +467,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
+        assert_eq!(theme.accent, Color::Rgb(98, 158, 198));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -483,7 +484,7 @@ mod tests {
         let theme = theme_for(&AppType::OpenCode);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(176, 122, 72));
+        assert_eq!(theme.accent, Color::Rgb(206, 120, 56));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -500,7 +501,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
+        assert_eq!(theme.accent, Color::Rgb(98, 158, 198));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -517,7 +518,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
+        assert_eq!(theme.accent, Color::Rgb(98, 158, 198));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -534,7 +535,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
+        assert_eq!(theme.accent, Color::Rgb(98, 158, 198));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -552,7 +553,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
-        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(127, 158, 178)));
+        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(98, 158, 198)));
         assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(82, 77, 66)));
         assert!(!theme.no_color);
     }
@@ -570,7 +571,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
-        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(127, 158, 178)));
+        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(98, 158, 198)));
         assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(82, 77, 66)));
         assert!(!theme.no_color);
     }
@@ -588,7 +589,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
+        assert_eq!(theme.accent, Color::Rgb(98, 158, 198));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -606,7 +607,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
+        assert_eq!(theme.accent, Color::Rgb(98, 158, 198));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -624,7 +625,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
+        assert_eq!(theme.accent, Color::Rgb(98, 158, 198));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -641,7 +642,7 @@ mod tests {
         let theme = theme_for(&AppType::OpenCode);
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
-        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(176, 122, 72)));
+        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(206, 120, 56)));
         assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(82, 77, 66)));
         assert!(!theme.no_color);
     }
@@ -675,7 +676,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
-        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(127, 158, 178)));
+        assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(98, 158, 198)));
         assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(82, 77, 66)));
         assert!(!theme.no_color);
     }
@@ -692,7 +693,7 @@ mod tests {
         let theme = theme_for(&AppType::Claude);
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
-        assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
+        assert_eq!(theme.accent, Color::Rgb(98, 158, 198));
         assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
@@ -703,7 +704,7 @@ mod tests {
     #[test]
     fn ansi256_mapping_keeps_curated_indices_for_light_palette() {
         // Light accents stay chromatic and dark enough for white paper.
-        assert_eq!(rgb_to_ansi256(LIGHT_CYAN.0, LIGHT_CYAN.1, LIGHT_CYAN.2), 60);
+        assert_eq!(rgb_to_ansi256(LIGHT_CYAN.0, LIGHT_CYAN.1, LIGHT_CYAN.2), 24);
         // Neutral roles stay neutral: chip surface a light gray, borders a
         // mid gray, ink a near-black.
         assert_eq!(
@@ -715,19 +716,19 @@ mod tests {
         // Status and accent hues must stay chromatic and apart once quantized.
         assert_eq!(
             rgb_to_ansi256(LIGHT_GREEN.0, LIGHT_GREEN.1, LIGHT_GREEN.2),
-            65
+            64
         );
         assert_eq!(
             rgb_to_ansi256(LIGHT_YELLOW.0, LIGHT_YELLOW.1, LIGHT_YELLOW.2),
-            100
-        );
-        assert_eq!(
-            rgb_to_ansi256(LIGHT_ORANGE.0, LIGHT_ORANGE.1, LIGHT_ORANGE.2),
             94
         );
         assert_eq!(
+            rgb_to_ansi256(LIGHT_ORANGE.0, LIGHT_ORANGE.1, LIGHT_ORANGE.2),
+            130
+        );
+        assert_eq!(
             rgb_to_ansi256(DRACULA_PINK.0, DRACULA_PINK.1, DRACULA_PINK.2),
-            139
+            175
         );
         // Semantic foregrounds in dark mode: strong text bright, text on
         // accent chips near-black.
@@ -741,7 +742,7 @@ mod tests {
     #[test]
     fn ansi256_mapping_keeps_curated_indices_for_fixed_v5_palette() {
         assert_eq!(rgb_to_ansi256(80, 250, 123), 84);
-        assert_eq!(rgb_to_ansi256(127, 158, 178), 109);
+        assert_eq!(rgb_to_ansi256(98, 158, 198), 74);
         assert_eq!(rgb_to_ansi256(255, 121, 198), 212);
         assert_eq!(rgb_to_ansi256(255, 184, 108), 215);
         assert_eq!(rgb_to_ansi256(241, 250, 140), 228);

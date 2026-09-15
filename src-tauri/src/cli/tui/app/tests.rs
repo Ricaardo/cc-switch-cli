@@ -10935,16 +10935,16 @@ mod tests {
             .position(|item| matches!(item, SettingsItem::Icons))
             .expect("Icons missing from SettingsItem::ALL");
 
-        // No persisted value is Ascii; Enter cycles Ascii -> Auto -> Emoji -> Ascii.
+        // No persisted value is Auto; Enter cycles Auto -> Emoji -> Ascii -> Auto.
         assert!(matches!(
             app.on_key(key(KeyCode::Enter), &UiData::default()),
             Action::None
         ));
-        assert_eq!(crate::settings::get_icon_mode().as_deref(), Some("auto"));
-        app.on_key(key(KeyCode::Enter), &UiData::default());
         assert_eq!(crate::settings::get_icon_mode().as_deref(), Some("emoji"));
         app.on_key(key(KeyCode::Enter), &UiData::default());
         assert_eq!(crate::settings::get_icon_mode().as_deref(), Some("ascii"));
+        app.on_key(key(KeyCode::Enter), &UiData::default());
+        assert_eq!(crate::settings::get_icon_mode().as_deref(), Some("auto"));
 
         crate::test_support::restore_env("CC_SWITCH_ICONS", &saved_icons);
     }

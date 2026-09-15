@@ -3925,13 +3925,11 @@ fn content_text(app: &App, buf: &Buffer) -> String {
 }
 
 fn nav_label_text(item: NavItem) -> String {
-    let label = super::nav_label(item);
-    let (_, text) = super::split_nav_label(label);
-    if super::icons::use_emoji() {
-        buffer_cell_text(label)
-    } else {
-        buffer_cell_text(text)
-    }
+    // The nav draws the icon in its own fixed-width column, so the rendered
+    // gap after a single-width glyph such as `⋯` differs from the label's one
+    // space. Match on the text, which renders identically in every icon mode.
+    let (_, text) = super::split_nav_label(super::nav_label(item));
+    buffer_cell_text(text)
 }
 
 fn nav_title_text(item: NavItem) -> &'static str {

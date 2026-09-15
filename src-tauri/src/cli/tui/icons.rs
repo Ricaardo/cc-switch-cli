@@ -2,22 +2,21 @@
 //!
 //! Decorative emoji glyphs (🏠 🔑 …) render double-width on some SSH and
 //! legacy terminals and break border alignment. `CC_SWITCH_ICONS` and the
-//! Settings › Icons row select the mode (default `Ascii`); `Auto` keeps emoji unless the locale
+//! Settings › Icons row select the mode; `Auto` keeps emoji unless the locale
 //! is clearly not UTF-8 (mirroring how COLORFGBG drives the theme). As with
 //! color mode, `Auto` never flips the default blindly — it only downgrades for
 //! a locale that cannot render wide glyphs; absent locale info stays emoji.
 
 const ICON_MODE_ENV: &str = "CC_SWITCH_ICONS";
 
-/// User-selectable icon rendering. ASCII is the default so the layout stays
-/// stable across terminals; emoji remains available through Settings or the
-/// `CC_SWITCH_ICONS=emoji` override.
+/// User-selectable icon rendering. `Auto` keeps emoji unless the locale is
+/// not UTF-8.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum IconMode {
     #[default]
-    Ascii,
-    Emoji,
     Auto,
+    Emoji,
+    Ascii,
 }
 
 impl IconMode {
@@ -52,7 +51,7 @@ fn icon_mode_override() -> Option<IconMode> {
 }
 
 /// The configured icon mode: the `CC_SWITCH_ICONS` override wins, then the
-/// persisted Settings value, else `Ascii`.
+/// persisted Settings value, else `Auto`.
 pub fn configured_icon_mode() -> IconMode {
     if let Some(mode) = icon_mode_override() {
         return mode;
