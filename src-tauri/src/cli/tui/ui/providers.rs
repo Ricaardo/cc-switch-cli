@@ -98,14 +98,23 @@ pub(super) fn provider_marker(app: &App, data: &UiData, row: &ProviderRow) -> St
     }
 }
 
+/// Whether [`provider_marker`] draws the live-provider seal for this row. It
+/// follows the same branches rather than comparing glyphs: in ASCII mode the
+/// seal and the OpenClaw/Hermes default-model marker are both `*`.
+pub(super) fn provider_marker_is_seal(app: &App, data: &UiData, row: &ProviderRow) -> bool {
+    let failover_supported = crate::cli::tui::app::supports_failover_controls(&app.app_type);
+    row.is_current
+        && !(failover_supported && data.proxy.auto_failover_enabled)
+        && !matches!(
+            app.app_type,
+            AppType::OpenClaw | AppType::Hermes | AppType::OpenCode | AppType::Pi
+        )
+}
+
 /// The cinnabar seal marks the live provider; every other marker keeps the
 /// default ink.
-pub(super) fn provider_marker_style(
-    row: &ProviderRow,
-    marker: &str,
-    theme: &super::theme::Theme,
-) -> Style {
-    if row.is_current && marker == current_provider_seal() && !theme.no_color {
+pub(super) fn provider_marker_style(is_seal: bool, theme: &super::theme::Theme) -> Style {
+    if is_seal && !theme.no_color {
         Style::default().fg(theme.err).add_modifier(Modifier::BOLD)
     } else {
         Style::default()
@@ -235,7 +244,7 @@ pub(super) fn render_providers(
         let marker = provider_marker(app, data, row);
         let api = row.api_url.as_deref().unwrap_or(texts::tui_na());
         let show_quota = row.is_current || idx == app.provider_idx;
-        let marker_style = provider_marker_style(row, &marker, theme);
+        let marker_style = provider_marker_style(provider_marker_is_seal(app, data, row), theme);
         let cells = vec![
             Cell::from(Span::styled(marker, marker_style)),
             Cell::from(provider_name_with_quota_line(

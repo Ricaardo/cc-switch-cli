@@ -14,9 +14,11 @@ const DRACULA_PINK: (u8, u8, u8) = (176, 130, 160);
 const DRACULA_ORANGE: (u8, u8, u8) = (176, 122, 72);
 const DRACULA_YELLOW: (u8, u8, u8) = (196, 160, 98);
 const DRACULA_RED: (u8, u8, u8) = (196, 87, 63);
-const OPENCLAW_CORAL: (u8, u8, u8) = (168, 85, 99);
+const OPENCLAW_CORAL: (u8, u8, u8) = (190, 104, 116);
 const DRACULA_COMMENT: (u8, u8, u8) = (125, 119, 104);
-const DRACULA_SURFACE: (u8, u8, u8) = (43, 41, 35);
+// Surface doubles as a muted text color, so it stays light enough to read
+// on dark terminal grounds (2.5:1 on black) while still carrying fg text.
+const DRACULA_SURFACE: (u8, u8, u8) = (82, 77, 66);
 const DRACULA_FG: (u8, u8, u8) = (218, 211, 192);
 
 // Light-background palette: the same hue family, darkened for contrast
@@ -448,7 +450,7 @@ mod tests {
         let opencode = theme_for(&AppType::OpenCode);
         let codex = theme_for(&AppType::Codex);
 
-        assert_eq!(openclaw.accent, Color::Rgb(168, 85, 99));
+        assert_eq!(openclaw.accent, Color::Rgb(190, 104, 116));
         assert_ne!(openclaw.accent, opencode.accent);
         assert_ne!(openclaw.accent, codex.accent);
     }
@@ -465,7 +467,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -482,7 +484,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(176, 122, 72));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -499,7 +501,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -516,7 +518,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -533,7 +535,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -551,7 +553,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
         assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(127, 158, 178)));
-        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(43, 41, 35)));
+        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(82, 77, 66)));
         assert!(!theme.no_color);
     }
 
@@ -569,7 +571,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
         assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(127, 158, 178)));
-        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(43, 41, 35)));
+        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(82, 77, 66)));
         assert!(!theme.no_color);
     }
 
@@ -587,7 +589,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -605,7 +607,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -623,7 +625,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -640,7 +642,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
         assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(176, 122, 72)));
-        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(43, 41, 35)));
+        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(82, 77, 66)));
         assert!(!theme.no_color);
     }
 
@@ -674,7 +676,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::Ansi256);
         assert_eq!(theme.accent, Color::Indexed(rgb_to_ansi256(127, 158, 178)));
-        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(43, 41, 35)));
+        assert_eq!(theme.surface, Color::Indexed(rgb_to_ansi256(82, 77, 66)));
         assert!(!theme.no_color);
     }
 
@@ -691,7 +693,7 @@ mod tests {
 
         assert_eq!(detected_color_mode(), ColorMode::TrueColor);
         assert_eq!(theme.accent, Color::Rgb(127, 158, 178));
-        assert_eq!(theme.surface, Color::Rgb(43, 41, 35));
+        assert_eq!(theme.surface, Color::Rgb(82, 77, 66));
         assert!(!theme.no_color);
     }
 
@@ -745,7 +747,7 @@ mod tests {
         assert_eq!(rgb_to_ansi256(241, 250, 140), 228);
         assert_eq!(rgb_to_ansi256(255, 85, 85), 203);
         assert_eq!(rgb_to_ansi256(98, 114, 164), 61);
-        assert_eq!(rgb_to_ansi256(43, 41, 35), 235);
+        assert_eq!(rgb_to_ansi256(82, 77, 66), 239);
         assert_eq!(rgb_to_ansi256(101, 113, 160), 61);
         assert_eq!(rgb_to_ansi256(248, 248, 248), 231);
         assert_eq!(rgb_to_ansi256(108, 108, 108), 242);

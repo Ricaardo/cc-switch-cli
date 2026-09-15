@@ -126,7 +126,19 @@ pub(crate) fn apply_preloaded_app_switch(
         // from rendering the previous app's row.
         app.usage.invalidate_log_pages();
     }
+    // Keep the More selection on the same entry: each app orders its More
+    // list differently, so a raw index would point at another page.
+    let more_item = super::route::NavItem::more_for_app(&app.app_type)
+        .get(app.more_idx)
+        .copied();
     app.app_type = next;
+    app.more_idx = more_item
+        .and_then(|item| {
+            super::route::NavItem::more_for_app(&app.app_type)
+                .iter()
+                .position(|candidate| *candidate == item)
+        })
+        .unwrap_or(0);
     let original_route = app.route.clone();
     app.route = normalize_route_for_app(&app.app_type, &app.route);
     if was_sessions && (changing_app || !matches!(app.route, super::route::Route::Sessions)) {
@@ -1186,6 +1198,33 @@ mod tests {
     use std::fs;
     use std::path::Path;
     use tempfile::TempDir;
+
+    #[test]
+    fn app_switch_keeps_the_more_selection_on_the_same_entry() {
+        let temp_home = TempDir::new().expect("create temp home");
+        let _env = EnvGuard::set_home(temp_home.path());
+        use crate::cli::tui::route::NavItem;
+
+        let position = |app_type: &AppType, item: NavItem| {
+            NavItem::more_for_app(app_type)
+                .iter()
+                .position(|candidate| *candidate == item)
+                .expect("entry listed for app")
+        };
+        let mut app = App::new(Some(AppType::Claude));
+        app.route = Route::More;
+        app.more_idx = position(&AppType::Claude, NavItem::Skills);
+        assert_ne!(app.more_idx, position(&AppType::Pi, NavItem::Skills));
+
+        let mut data = UiData::default();
+        apply_preloaded_app_switch(&mut app, &mut data, AppType::Pi, UiData::default());
+        assert_eq!(app.more_idx, position(&AppType::Pi, NavItem::Skills));
+
+        // An entry the next app lacks falls back to the first row.
+        app.more_idx = position(&AppType::Pi, NavItem::PiSystemPrompts);
+        apply_preloaded_app_switch(&mut app, &mut data, AppType::Claude, UiData::default());
+        assert_eq!(app.more_idx, 0);
+    }
 
     #[test]
     fn app_switch_keeps_the_more_page_for_every_app() {

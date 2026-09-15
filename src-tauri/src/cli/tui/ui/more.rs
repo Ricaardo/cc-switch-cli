@@ -72,9 +72,12 @@ pub(super) fn render_more(
         ])));
     }
 
-    let list = List::new(rows)
-        .highlight_style(selection_style(theme))
-        .highlight_symbol(highlight_symbol(theme));
+    // Like the home desk, the selection only lights up while the list owns
+    // focus; otherwise Enter goes to the navigation pane.
+    let mut list = List::new(rows).highlight_symbol(highlight_symbol(theme));
+    if app.focus == Focus::Content {
+        list = list.highlight_style(selection_style(theme));
+    }
 
     let mut state = ListState::default();
     state.select(selected_row);

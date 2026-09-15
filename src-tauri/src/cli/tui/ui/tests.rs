@@ -6202,6 +6202,10 @@ fn home_desk_lists_providers_with_the_seal_and_today_spend() {
     );
     assert!(desk_row.contains("$4.180"), "{desk_row}");
     assert!(all.contains("1.2M"), "{all}");
+    assert!(
+        all.contains("Requests"),
+        "every Today row fits even with a single provider:\n{all}"
+    );
     assert!(all.contains("Space switch"), "{all}");
 }
 
@@ -6230,6 +6234,79 @@ fn home_desk_keeps_today_in_view_on_narrow_terminals() {
     assert!(
         at_sixty.contains("Today $4.180"),
         "the provider rail carries today's cost when the card yields:\n{at_sixty}"
+    );
+}
+
+#[test]
+fn ascii_default_model_marker_is_not_painted_as_the_seal() {
+    let _lock = lock_env();
+    let _icons_lock = lock_test_home_and_settings();
+    let _ascii = EnvGuard::set("CC_SWITCH_ICONS", "ascii");
+    let _lang = use_test_language(Language::English);
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Hermes));
+    app.route = Route::Providers;
+    app.focus = Focus::Content;
+    // Keep the selection on the first row so the marked row is unhighlighted.
+    app.provider_idx = 0;
+    let mut data = minimal_data(&app.app_type);
+    let mut default_row = failover_provider_row("current", "Current Provider", true, false, None);
+    default_row.is_default_model = true;
+    data.providers.rows = vec![
+        failover_provider_row("other", "Other Provider", false, false, None),
+        default_row,
+    ];
+
+    let buf = render(&app, &data);
+    let theme = theme_for(&app.app_type);
+    // The header badge also names the default model, so take the list row
+    // (the last line carrying the name) rather than the first match.
+    let y = (0..buf.area.height)
+        .rev()
+        .find(|y| line_at(&buf, *y).contains("Current Provider"))
+        .expect("default-model row rendered");
+    let x = (0..buf.area.width)
+        .find(|x| buf[(*x, y)].symbol() == "*")
+        .expect("default-model marker");
+
+    assert_ne!(
+        buf[(x, y)].fg,
+        theme.err,
+        "the default-model `*` shares the ASCII seal glyph but is not the seal"
+    );
+}
+
+#[test]
+fn more_page_selection_only_highlights_while_the_list_has_focus() {
+    let _lock = lock_env();
+    let _lang = use_test_language(Language::English);
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Claude));
+    app.route = Route::More;
+    app.more_idx = 0;
+    let data = minimal_data(&app.app_type);
+    let theme = theme_for(&app.app_type);
+    let label = nav_title_text(NavItem::Sessions);
+
+    app.focus = Focus::Content;
+    let focused = render(&app, &data);
+    let content = content_text(&app, &focused);
+    let row = line_index(&content, label);
+    let col = display_column_in_line(line_with(&content, label), label);
+    assert_eq!(
+        content_cell_at(&app, &focused, col, row).bg,
+        theme.accent,
+        "{content}"
+    );
+
+    app.focus = Focus::Nav;
+    let unfocused = render(&app, &data);
+    assert_ne!(
+        content_cell_at(&app, &unfocused, col, row).bg,
+        theme.accent,
+        "{content}"
     );
 }
 
@@ -14089,10 +14166,10 @@ fn home_usage_chart_degrades_on_small_terminals_without_panicking() {
     data.usage =
         usage_with_daily_models(&[("claude-opus", 5_000, 6.0), ("claude-haiku", 1_000, 1.0)]);
 
-    // 76x22 leaves the card two body rows once the environment check has
+    // 76x23 leaves the card two body rows once the environment check has
     // yielded: the top pad plus one content row. The list header survives;
     // the graph disappears first.
-    let small_buf = render_with_size(&app, &data, 76, 22);
+    let small_buf = render_with_size(&app, &data, 76, 23);
     let small = all_text(&small_buf);
     assert!(small.contains(&usage_card_title()), "{small}");
     assert!(small.contains("Models by Cost"), "{small}");

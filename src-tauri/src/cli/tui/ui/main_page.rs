@@ -313,19 +313,24 @@ pub(super) fn render_main(
 }
 
 const LOCAL_ENV_CARD_HEIGHT: u16 = 4;
-/// The usage chart's floor before the environment check yields its rows.
-const HOME_CHART_MIN_HEIGHT: u16 = 8;
+/// The usage chart's floor before the environment check yields its rows:
+/// rails plus five body rows.
+const HOME_CHART_MIN_HEIGHT: u16 = 7;
 const HOME_DESK_MAX_ROWS: u16 = 6;
 /// The Today card keeps a fixed width; below this desk width it yields and
 /// the provider card carries today's cost on its title rail instead.
 const HOME_DESK_SPLIT_MIN_WIDTH: u16 = 46;
 const HOME_TODAY_CARD_WIDTH: u16 = 24;
 
+/// The Today card lists cost, input, output, cache read and requests.
+const HOME_TODAY_ROWS: u16 = 5;
+
 /// Rails plus up to six provider rows; never shorter than the Today card's
-/// four value rows.
+/// five value rows.
 fn home_desk_height(app: &App, data: &UiData) -> u16 {
     let rows = u16::try_from(provider_rows_filtered(app, data).len()).unwrap_or(u16::MAX);
-    rows.clamp(4, HOME_DESK_MAX_ROWS).saturating_add(2)
+    rows.clamp(HOME_TODAY_ROWS, HOME_DESK_MAX_ROWS)
+        .saturating_add(2)
 }
 
 /// The two high-frequency jobs share the first row: switching providers on
@@ -433,7 +438,8 @@ fn render_home_provider_card(
         .enumerate()
         .map(|(idx, row)| {
             let marker = provider_marker(app, data, row);
-            let marker_style = provider_marker_style(row, &marker, theme);
+            let marker_style =
+                provider_marker_style(provider_marker_is_seal(app, data, row), theme);
             let show_quota = row.is_current || idx == app.provider_idx;
             let mut spans = vec![
                 Span::raw(" "),

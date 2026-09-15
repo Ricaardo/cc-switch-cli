@@ -70,7 +70,7 @@ const SERIES_PALETTE: [(u8, u8, u8); 4] = [
     (111, 129, 150), // 黛 indigo ink
     (110, 160, 150), // 蟹壳青 crab-shell celadon
     (168, 136, 152), // 藕荷 lotus-root mauve
-    (180, 146, 108), // 驼 camel
+    (176, 156, 116), // 驼 camel
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
