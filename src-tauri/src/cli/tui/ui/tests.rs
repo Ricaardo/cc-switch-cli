@@ -10907,6 +10907,18 @@ fn more_page_holds_advanced_entries_out_of_the_primary_nav() {
     assert!(all.contains(nav_title_text(NavItem::Sessions)), "{all}");
     assert!(all.contains(nav_title_text(NavItem::Config)), "{all}");
     assert!(all.contains(nav_title_text(NavItem::Settings)), "{all}");
+
+    let records = line_index(&all, "Records");
+    let extensions = line_index(&all, "Extensions");
+    let configuration = line_index(&all, "Configuration");
+    assert!(
+        records < extensions && extensions < configuration,
+        "More sections should read Records, Extensions, Configuration:\n{all}"
+    );
+    assert!(
+        line_index(&all, nav_title_text(NavItem::Mcp)) > extensions,
+        "{all}"
+    );
 }
 
 #[test]

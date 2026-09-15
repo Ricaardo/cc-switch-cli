@@ -56,6 +56,13 @@ pub enum NavItem {
     Exit,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MoreGroup {
+    Records,
+    Extensions,
+    Configuration,
+}
+
 impl NavItem {
     pub const ALL: [NavItem; 5] = [
         NavItem::Main,
@@ -89,29 +96,30 @@ impl NavItem {
         NavItem::Exit,
     ];
 
+    // More lists are ordered by `more_group` so each section is contiguous.
     pub const MORE_ALL: [NavItem; 6] = [
         NavItem::Sessions,
-        NavItem::Config,
         NavItem::Mcp,
         NavItem::Skills,
         NavItem::Prompts,
+        NavItem::Config,
         NavItem::Settings,
     ];
     pub const OPENCLAW_MORE: [NavItem; 7] = [
         NavItem::Sessions,
-        NavItem::Config,
         NavItem::OpenClawWorkspace,
         NavItem::OpenClawEnv,
         NavItem::OpenClawTools,
         NavItem::OpenClawAgents,
+        NavItem::Config,
         NavItem::Settings,
     ];
     pub const HERMES_MORE: [NavItem; 6] = [
         NavItem::Sessions,
-        NavItem::Config,
         NavItem::Mcp,
         NavItem::Skills,
         NavItem::HermesMemory,
+        NavItem::Config,
         NavItem::Settings,
     ];
     pub const PI_MORE: [NavItem; 6] = [
@@ -138,6 +146,15 @@ impl NavItem {
             AppType::Hermes => &Self::HERMES_MORE,
             AppType::Pi => &Self::PI_MORE,
             _ => &Self::MORE_ALL,
+        }
+    }
+
+    /// Section a More-page entry is listed under.
+    pub fn more_group(self) -> MoreGroup {
+        match self {
+            NavItem::Sessions => MoreGroup::Records,
+            NavItem::Config | NavItem::Settings => MoreGroup::Configuration,
+            _ => MoreGroup::Extensions,
         }
     }
 
@@ -227,5 +244,23 @@ mod tests {
         assert!(NavItem::OPENCLAW_MORE
             .iter()
             .any(|item| matches!(item, NavItem::Config)));
+    }
+
+    #[test]
+    fn more_lists_keep_each_group_contiguous() {
+        for list in [
+            NavItem::MORE_ALL.as_slice(),
+            NavItem::OPENCLAW_MORE.as_slice(),
+            NavItem::HERMES_MORE.as_slice(),
+            NavItem::PI_MORE.as_slice(),
+        ] {
+            let mut seen = Vec::new();
+            for group in list.iter().map(|item| item.more_group()) {
+                if seen.last() != Some(&group) {
+                    assert!(!seen.contains(&group), "{list:?} splits {group:?}");
+                    seen.push(group);
+                }
+            }
+        }
     }
 }

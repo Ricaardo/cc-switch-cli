@@ -567,6 +567,16 @@ fn global_help_lines(app: &App, data: &UiData) -> Vec<String> {
         .map(str::to_string)
         .collect();
 
+    lines.push(keymap_bullet(
+        crate::t!("Home", "首页"),
+        vec![
+            ("→", crate::t!("provider desk", "进入案头")),
+            ("Space", texts::tui_key_switch()),
+            ("Enter", crate::t!("providers page", "供应商页")),
+            ("u", crate::t!("usage", "使用统计")),
+            ("m", crate::t!("more", "更多")),
+        ],
+    ));
     lines.push(format!(
         "- {}",
         texts::tui_help_line_providers(&app.app_type)

@@ -857,6 +857,16 @@ impl App {
             return self.main_proxy_action(data);
         }
 
+        // Home-only shortcuts to the other everyday surfaces. MCP and Skills
+        // bind `m`/`u` on their own pages, so these stay off every other route.
+        if matches!(self.route, Route::Main) {
+            match key.code {
+                KeyCode::Char('u') => return self.push_route_and_switch(Route::Usage),
+                KeyCode::Char('m') => return self.push_route_and_switch(Route::More),
+                _ => {}
+            }
+        }
+
         // Navigation + route-specific actions.
         match self.focus {
             Focus::Nav => self.on_nav_key(key),

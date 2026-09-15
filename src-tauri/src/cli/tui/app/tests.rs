@@ -2939,6 +2939,33 @@ mod tests {
     }
 
     #[test]
+    fn home_u_and_m_open_usage_and_more_from_either_pane() {
+        for focus in [Focus::Nav, Focus::Content] {
+            let mut app = App::new(Some(AppType::Claude));
+            app.route = Route::Main;
+            app.focus = focus;
+            let action = app.on_key(key(KeyCode::Char('u')), &home_desk_data());
+            assert!(matches!(action, Action::SwitchRoute(Route::Usage)));
+
+            let mut app = App::new(Some(AppType::Claude));
+            app.route = Route::Main;
+            app.focus = focus;
+            let action = app.on_key(key(KeyCode::Char('m')), &home_desk_data());
+            assert!(matches!(action, Action::SwitchRoute(Route::More)));
+        }
+    }
+
+    #[test]
+    fn m_key_outside_home_stays_with_the_page() {
+        let mut app = App::new(Some(AppType::Claude));
+        app.route = Route::More;
+        app.focus = Focus::Content;
+        let action = app.on_key(key(KeyCode::Char('m')), &home_desk_data());
+        assert!(!matches!(action, Action::SwitchRoute(_)));
+        assert_eq!(app.route, Route::More);
+    }
+
+    #[test]
     fn providers_r_key_refreshes_official_quota() {
         let mut app = App::new(Some(AppType::Claude));
         app.route = Route::Providers;
